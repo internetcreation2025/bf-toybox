@@ -22,6 +22,7 @@ type Authored = {
   proof_elements: string[];
   prep_tasks: string[];
   diary_tasks: DiaryTask[];
+  gallery_demand: string;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -82,6 +83,10 @@ function parseAuthored(text: string, fallback: Authored): Authored {
             .map((d) => ({ task: (d.task as string).trim(), on: d.on as string }))
             .slice(0, 3)
         : fallback.diary_tasks,
+      gallery_demand:
+        typeof json.gallery_demand === "string"
+          ? json.gallery_demand.trim()
+          : fallback.gallery_demand,
     };
   } catch {
     return fallback;
@@ -202,6 +207,18 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: false })
     .limit(8);
 
+  // The Roaster's "file": close-ups it demanded earlier and has on record.
+  const isRoaster = persona === "roaster";
+  const { data: galleryRows } = isRoaster
+    ? await supabase
+        .from("bf_gallery")
+        .select("prompt, note, status")
+        .eq("status", "filed")
+        .order("filed_at", { ascending: false })
+        .limit(6)
+    : { data: null };
+  const filedShots = (galleryRows ?? []).filter((g) => g.note?.trim());
+
   const { data: streakRow } = await supabase
     .from("bf_streak")
     .select("losing_streak")
@@ -284,6 +301,13 @@ ${
         .join(" | ")}`
     : ""
 }
+${
+  filedShots.length
+    ? `YOUR FILE ON MIKE — close-ups you demanded earlier and keep on record. Reference these to needle him and to decide what's worth adding: ${filedShots
+        .map((g) => `"${g.prompt}" — ${g.note}`)
+        .join(" | ")}`
+    : ""
+}
 ${smell !== null ? `Current footwear/sock smell index the owner reports: ${smell}/10.` : ""}
 ${losingNote}
 Today's date: ${today} (ISO ${todayIso})
@@ -301,9 +325,14 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
       : "[]"
   },
   "prep_tasks": ["zero or more short imperative tasks the owner must prepare DAYS IN ADVANCE for future sessions (e.g. 'Keep the sweaty socks from your next two padel games, dried and bagged, and carry them'); [] if none this round. Only set these on the more adventurous tiers."],
-  "diary_tasks": [{ "task": "what he must do", "on": "YYYY-MM-DD on or after ${todayIso}" }]
+  "diary_tasks": [{ "task": "what he must do", "on": "YYYY-MM-DD on or after ${todayIso}" }],
+  "gallery_demand": ${
+    isRoaster
+      ? `"OPTIONAL and SEPARATE from the dare — only occasionally, when you fancy it. One short, exacting demand for a single well-lit close-up of a specific part of Mike's bare foot, framed how you want it, purely to add to your file for future roasts (e.g. 'a tight, well-lit shot of the underside of your right big toe'). Empty string if you don't want one this round."`
+      : `""`
+  }
 }
-(diary_tasks: zero or more tasks to schedule for a SPECIFIC future date — use [] if none; only diarise when it genuinely makes sense.)`;
+(diary_tasks: zero or more tasks to schedule for a SPECIFIC future date — use [] if none; only diarise when it genuinely makes sense. gallery_demand: a standalone close-up request for the Roaster's file, NOT proof for the dare — leave it as "" unless you genuinely want a shot on record.)`;
 
   const fallback: Authored = {
     instruction: brief.guide,
@@ -311,6 +340,7 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     proof_elements: [],
     prep_tasks: [],
     diary_tasks: [],
+    gallery_demand: "",
   };
   let authored = fallback;
   try {
@@ -381,6 +411,15 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
         game_on: d.on,
       }))
     );
+  }
+
+  // The Roaster occasionally demands a standalone close-up "for the file" —
+  // logged as a pending gallery item Mike fulfils later. Never on sealed rolls.
+  if (!sealedUntil && isRoaster && authored.gallery_demand) {
+    await supabase.from("bf_gallery").insert({
+      user_id: user.id,
+      prompt: authored.gallery_demand.slice(0, 300),
+    });
   }
 
   console.log("[roll] done", rarity, sealedUntil ? "(sealed)" : "");

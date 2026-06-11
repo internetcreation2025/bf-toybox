@@ -17,6 +17,7 @@ export default async function Home() {
     { data: games },
     { data: preps },
     { data: diary },
+    { data: gallery },
   ] = await Promise.all([
       supabase
         .from("bf_streak")
@@ -48,6 +49,11 @@ export default async function Home() {
         .eq("kind", "diary")
         .eq("status", "open")
         .order("game_on", { ascending: true }),
+      supabase
+        .from("bf_gallery")
+        .select("id, prompt")
+        .eq("status", "pending")
+        .order("created_at", { ascending: true }),
     ]);
 
   const activeSessions = (active ?? []) as ActiveChallenge[];
@@ -58,6 +64,7 @@ export default async function Home() {
     title: string;
     game_on: string | null;
   }>).map((d) => ({ id: d.id, title: d.title, due: d.game_on }));
+  const galleryDemands = (gallery ?? []) as Array<{ id: string; prompt: string }>;
 
   // You can't start a new roll while a live (non-sealed) verdict is in play.
   const hasLiveSession = activeSessions.some((s) => s.status === "issued");
@@ -79,6 +86,7 @@ export default async function Home() {
     { href: "/settings", label: "The Decider (settings)" },
     { href: "/archive", label: "Archive" },
     { href: "/stats", label: "Stats & achievements" },
+    { href: "/gallery", label: "The file" },
   ];
 
   return (
@@ -127,6 +135,30 @@ export default async function Home() {
           <div className="mt-3 space-y-3">
             {activeSessions.map((c) => (
               <ActiveSession key={c.id} challenge={c} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {galleryDemands.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            The Roaster wants a shot
+          </h2>
+          <div className="mt-3 space-y-2">
+            {galleryDemands.map((g) => (
+              <Link
+                key={g.id}
+                href="/gallery"
+                className="flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 transition-colors hover:border-amber-400 dark:border-amber-900/60 dark:bg-amber-950/30"
+              >
+                <span className="text-sm text-amber-900 dark:text-amber-200">
+                  {g.prompt}
+                </span>
+                <span aria-hidden className="text-amber-700 dark:text-amber-300">
+                  →
+                </span>
+              </Link>
             ))}
           </div>
         </section>

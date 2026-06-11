@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { pushConfigured, sendPush, type StoredSub } from "@/lib/push";
 
-// Background dispatcher: finds sealed mystery envelopes whose unlock time has
-// passed and that haven't been announced yet, and sends a CONTENT-FREE push so
-// the owner knows to open the app. Called every minute by an external scheduler
-// and gated by a shared secret (no user session here).
+// Background dispatcher: finds things the owner should come back for —
+//  (a) sealed mystery envelopes whose unlock time has passed, and
+//  (b) diarised tasks whose due date has arrived —
+// neither announced yet, and sends a CONTENT-FREE push so the owner just knows
+// to open the app. Called every minute by an external scheduler and gated by a
+// shared secret (no user session here).
 async function handle(request: Request) {
   console.log("[cron/dispatch] start");
 
@@ -34,30 +36,62 @@ async function handle(request: Request) {
   }
 
   const nowIso = new Date().toISOString();
+  const todayIso = nowIso.slice(0, 10);
 
-  const { data: due, error } = await admin
+  // (a) Sealed envelopes whose timer has elapsed.
+  const { data: envs, error: envErr } = await admin
     .from("bf_challenges")
     .select("id, user_id")
     .eq("status", "sealed")
     .lte("sealed_until", nowIso)
     .is("notified_at", null);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (envErr) {
+    return NextResponse.json({ error: envErr.message }, { status: 500 });
   }
-  if (!due || due.length === 0) {
+
+  // (b) Diarised tasks whose due date has arrived and are still open.
+  const { data: diaries, error: diaryErr } = await admin
+    .from("bf_memory")
+    .select("id, user_id")
+    .eq("kind", "diary")
+    .eq("status", "open")
+    .lte("game_on", todayIso)
+    .is("notified_at", null);
+  if (diaryErr) {
+    return NextResponse.json({ error: diaryErr.message }, { status: 500 });
+  }
+
+  const envRows = envs ?? [];
+  const diaryRows = diaries ?? [];
+  if (envRows.length === 0 && diaryRows.length === 0) {
     return NextResponse.json({ sent: 0, due: 0 });
   }
 
-  // One nudge per device per run, even if several envelopes unlocked at once.
-  const userIds = [...new Set(due.map((d) => d.user_id))];
-  const payload = {
-    title: "Sole Decider",
-    body: "A sealed envelope is ready to open.",
-    url: "/",
-  };
+  // Work out, per user, what's waiting — so each device gets ONE content-free
+  // nudge per run even if several things came due at once.
+  const reasons = new Map<string, { env: boolean; diary: boolean }>();
+  for (const r of envRows) {
+    const cur = reasons.get(r.user_id) ?? { env: false, diary: false };
+    cur.env = true;
+    reasons.set(r.user_id, cur);
+  }
+  for (const r of diaryRows) {
+    const cur = reasons.get(r.user_id) ?? { env: false, diary: false };
+    cur.diary = true;
+    reasons.set(r.user_id, cur);
+  }
+
+  // Deliberately vague — it only prompts him to open the app, never reveals the
+  // task itself.
+  function bodyFor(r: { env: boolean; diary: boolean }): string {
+    if (r.env && r.diary) return "Something's waiting for you.";
+    if (r.env) return "A sealed envelope is ready to open.";
+    return "A diary task is due.";
+  }
 
   let sent = 0;
-  for (const uid of userIds) {
+  for (const [uid, r] of reasons) {
+    const payload = { title: "Sole Decider", body: bodyFor(r), url: "/" };
     const { data: subs } = await admin
       .from("bf_push_subs")
       .select("endpoint, p256dh, auth")
@@ -78,17 +112,27 @@ async function handle(request: Request) {
     }
   }
 
-  // Mark every due envelope announced so we never ping for it again.
-  await admin
-    .from("bf_challenges")
-    .update({ notified_at: nowIso })
-    .in(
-      "id",
-      due.map((d) => d.id)
-    );
+  // Mark everything announced so we never ping for it again.
+  if (envRows.length) {
+    await admin
+      .from("bf_challenges")
+      .update({ notified_at: nowIso })
+      .in("id", envRows.map((d) => d.id));
+  }
+  if (diaryRows.length) {
+    await admin
+      .from("bf_memory")
+      .update({ notified_at: nowIso })
+      .in("id", diaryRows.map((d) => d.id));
+  }
 
-  console.log("[cron/dispatch] done", { due: due.length, sent });
-  return NextResponse.json({ due: due.length, sent });
+  const due = envRows.length + diaryRows.length;
+  console.log("[cron/dispatch] done", {
+    envelopes: envRows.length,
+    diary: diaryRows.length,
+    sent,
+  });
+  return NextResponse.json({ due, envelopes: envRows.length, diary: diaryRows.length, sent });
 }
 
 export async function GET(request: Request) {
