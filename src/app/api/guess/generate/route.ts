@@ -6,11 +6,42 @@ import { generateImages, googleConfigured } from "@/lib/google";
 // Owner-only. Generates a batch of AI foot photos (male + female) and banks
 // them in storage + bf_guess_pool, so the guessing game can draw from them
 // without paying to generate on every play.
-const PROMPTS: Record<"male" | "female", string> = {
-  male: "A realistic photographic close-up of an adult man's bare foot resting on a plain neutral grey surface, whole foot visible from a slight three-quarter angle, soft natural lighting, no shoes, no socks, no jewellery, no text, no watermark.",
-  female:
-    "A realistic photographic close-up of an adult woman's bare foot resting on a plain neutral grey surface, whole foot visible from a slight three-quarter angle, soft natural lighting, no shoes, no socks, no jewellery, no text, no watermark.",
-};
+//
+// Variety is the point: each image is generated on its OWN request (sampleCount
+// 1) with a different close-up SHOT and a different-looking foot, so no two come
+// out the same.
+const SHOTS = [
+  "an extreme macro close-up of just the heel, seen from behind",
+  "a macro close-up of the underside pads of the toes",
+  "a close-up of the sole and mid-foot",
+  "a close-up of the inner arch from the side",
+  "a close-up of the outer edge of the foot showing the little toe",
+  "a close-up of the top of the foot and toes from above",
+  "a macro close-up of the big toe and its toenail",
+  "a close-up of the ball of the foot and toe pads",
+  "a close-up of the ankle, Achilles and back of the heel",
+];
+const TONES = ["fair", "olive", "light brown", "brown", "deep brown"];
+const BUILDS = ["slender", "broad", "average", "long and narrow"];
+
+function buildPrompt(
+  gender: "male" | "female",
+  shot: string,
+  tone: string,
+  build: string
+): string {
+  const who = gender === "male" ? "an adult man's" : "an adult woman's";
+  return `A realistic, sharply focused photographic ${shot} of ${who} bare foot. ${tone} skin, ${build} foot. Plain neutral grey background, soft even studio lighting, no shoes, no socks, no jewellery, no text, no watermark.`;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function extFor(mime: string): string {
   if (mime.includes("jpeg") || mime.includes("jpg")) return "jpg";
@@ -47,8 +78,17 @@ export async function POST(request: Request) {
   const counts: Record<string, number> = { male: 0, female: 0 };
   try {
     for (const gender of ["male", "female"] as const) {
-      const images = await generateImages(PROMPTS[gender], perGender);
-      for (const img of images) {
+      // Distinct shot per image so the parts vary within the batch.
+      const shots = shuffle(SHOTS);
+      for (let i = 0; i < perGender; i++) {
+        const shot = shots[i % shots.length];
+        const tone = TONES[Math.floor(Math.random() * TONES.length)];
+        const build = BUILDS[Math.floor(Math.random() * BUILDS.length)];
+        const images = await generateImages(
+          buildPrompt(gender, shot, tone, build),
+          1
+        );
+        const img = images[0];
         const path = `${user.id}/guess/${randomUUID()}.${extFor(img.mimeType)}`;
         const { error: upErr } = await supabase.storage
           .from("bf-feet")
