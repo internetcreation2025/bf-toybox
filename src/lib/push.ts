@@ -8,8 +8,14 @@ const privateKey = process.env.VAPID_PRIVATE_KEY;
 
 export const pushConfigured = Boolean(subject && publicKey && privateKey);
 
-if (pushConfigured) {
+// Configure web-push lazily (never at module load). Validating the VAPID keys
+// at import time would crash the whole build/route collection if a key is
+// missing or malformed — instead, a bad key just makes a send fail cleanly.
+let vapidReady = false;
+function ensureVapid() {
+  if (vapidReady) return;
   webpush.setVapidDetails(subject as string, publicKey as string, privateKey as string);
+  vapidReady = true;
 }
 
 export type StoredSub = { endpoint: string; p256dh: string; auth: string };
@@ -19,6 +25,8 @@ export type StoredSub = { endpoint: string; p256dh: string; auth: string };
 export type PushPayload = { title: string; body: string; url: string };
 
 export async function sendPush(sub: StoredSub, payload: PushPayload) {
+  if (!pushConfigured) throw new Error("Push is not configured.");
+  ensureVapid();
   return webpush.sendNotification(
     { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
     JSON.stringify(payload)
