@@ -41,7 +41,7 @@ export default function RollPage() {
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }, []);
   const [date, setDate] = useState(todayIso);
-  const [weatherLocation, setWeatherLocation] = useState("");
+  const [weatherLocation, setWeatherLocation] = useState("Dunfermline, Fife");
 
   // ── schedule (the next few hours, with the times the owner sets) ──
   const [slots, setSlots] = useState<Slot[]>([

@@ -59,13 +59,26 @@ export default async function Home() {
     game_on: string | null;
   }>).map((d) => ({ id: d.id, title: d.title, due: d.game_on }));
 
-  const sections = [
-    { href: "/roll", label: "Roll my next 4 hours", soon: false },
-    { href: "/feet", label: "Teach it my feet", soon: false },
-    { href: "/catalogue", label: "Footwear catalogue", soon: false },
-    { href: "/settings", label: "The Decider (settings)", soon: false },
-    { href: "/archive", label: "Archive", soon: false },
-    { href: "/stats", label: "Stats & achievements", soon: false },
+  // You can't start a new roll while a live (non-sealed) verdict is in play.
+  const hasLiveSession = activeSessions.some((s) => s.status === "issued");
+
+  const sections: Array<{
+    href: string;
+    label: string;
+    disabled?: boolean;
+    note?: string;
+  }> = [
+    {
+      href: "/roll",
+      label: "Roll my next 4 hours",
+      disabled: hasLiveSession,
+      note: "finish first",
+    },
+    { href: "/feet", label: "Teach it my feet" },
+    { href: "/catalogue", label: "Footwear catalogue" },
+    { href: "/settings", label: "The Decider (settings)" },
+    { href: "/archive", label: "Archive" },
+    { href: "/stats", label: "Stats & achievements" },
   ];
 
   return (
@@ -150,15 +163,17 @@ export default async function Home() {
 
       <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {sections.map((s) =>
-          s.soon ? (
+          s.disabled ? (
             <div
               key={s.href}
               className="flex items-center justify-between rounded-xl border border-neutral-200 p-5 text-neutral-400 dark:border-neutral-800"
             >
               <span className="font-medium">{s.label}</span>
-              <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-900">
-                soon
-              </span>
+              {s.note && (
+                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-900">
+                  {s.note}
+                </span>
+              )}
             </div>
           ) : (
             <Link

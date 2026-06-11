@@ -195,6 +195,13 @@ export async function POST(request: Request) {
   const gameItems = (openMemory ?? []).filter((m) => m.kind === "game");
   const diaryItems = (openMemory ?? []).filter((m) => m.kind === "diary");
 
+  // Recent verdicts, so the Decider has continuity with Mike's history.
+  const { data: recent } = await supabase
+    .from("bf_challenges")
+    .select("rarity, instruction, status")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
   const { data: streakRow } = await supabase
     .from("bf_streak")
     .select("losing_streak")
@@ -268,6 +275,13 @@ ${
     ? `Tasks you've already diarised for future dates — don't duplicate these; bring one to life when its day is here or near: ${diaryItems
         .map((d) => `${d.game_on}: ${d.title}`)
         .join("; ")}`
+    : ""
+}
+${
+  recent && recent.length
+    ? `Your recent verdicts (newest first) — for continuity; don't just repeat them, build on or deliberately vary them: ${recent
+        .map((r) => `[${r.rarity}/${r.status}] ${r.instruction}`)
+        .join(" | ")}`
     : ""
 }
 ${smell !== null ? `Current footwear/sock smell index the owner reports: ${smell}/10.` : ""}
