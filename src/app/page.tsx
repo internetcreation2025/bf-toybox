@@ -1,53 +1,59 @@
 import { createClient } from "@/lib/supabase/server";
 
+// Middleware guarantees only the allowlisted owner reaches this page.
 export default async function Home() {
-  // Lightweight connection check: ask Supabase for the current auth session.
-  // This confirms the URL + key are valid without needing any tables yet.
-  let connected = false;
-  let detail = "";
-  try {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.getSession();
-    connected = !error;
-    detail = error ? error.message : "Auth endpoint reachable";
-  } catch (e) {
-    detail = e instanceof Error ? e.message : "Unknown error";
-  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "(not set)";
+  const sections = [
+    { href: "/roll", label: "Roll my next 4 hours", soon: true },
+    { href: "/feet", label: "Teach it my feet", soon: true },
+    { href: "/catalogue", label: "Footwear catalogue", soon: true },
+    { href: "/archive", label: "Archive", soon: true },
+    { href: "/stats", label: "Stats & achievements", soon: true },
+    { href: "/settings", label: "Settings", soon: true },
+  ];
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">bf-toybox</h1>
-        <p className="mt-2 text-sm text-neutral-500">
-          Next.js + Supabase starter
-        </p>
-      </div>
-
-      <div className="w-full max-w-md rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
-        <div className="flex items-center gap-3">
-          <span
-            className={`inline-block h-2.5 w-2.5 rounded-full ${
-              connected ? "bg-green-500" : "bg-red-500"
-            }`}
-            aria-hidden
-          />
-          <span className="font-medium">
-            {connected ? "Supabase connected" : "Supabase not connected"}
-          </span>
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col p-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Sole Decider</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            Signed in as {user?.email}
+          </p>
         </div>
-        <dl className="mt-4 space-y-1 text-sm text-neutral-500">
-          <div className="flex justify-between gap-4">
-            <dt>Project URL</dt>
-            <dd className="truncate font-mono text-xs">{url}</dd>
+        <form action="/auth/signout" method="post">
+          <button
+            type="submit"
+            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          >
+            Sign out
+          </button>
+        </form>
+      </header>
+
+      <section className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {sections.map((s) => (
+          <div
+            key={s.href}
+            className="flex items-center justify-between rounded-xl border border-neutral-200 p-5 dark:border-neutral-800"
+          >
+            <span className="font-medium">{s.label}</span>
+            {s.soon && (
+              <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-900">
+                soon
+              </span>
+            )}
           </div>
-          <div className="flex justify-between gap-4">
-            <dt>Status</dt>
-            <dd className="text-right">{detail}</dd>
-          </div>
-        </dl>
-      </div>
+        ))}
+      </section>
+
+      <p className="mt-10 text-center text-xs text-neutral-400">
+        Phase 0 complete — the app is locked to you. Features arrive next.
+      </p>
     </main>
   );
 }
