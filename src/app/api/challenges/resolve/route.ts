@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   // column/feature isn't present yet.
   if (outcome === "completed") {
     const wj = ch.wear_json as
-      | { items?: Array<{ id?: string }>; sockless?: boolean }
+      | { items?: Array<{ id?: string; category?: string }>; sockless?: boolean }
       | null
       | undefined;
     const items = Array.isArray(wj?.items) ? wj!.items : [];
@@ -104,20 +104,24 @@ export async function POST(request: Request) {
       if (!it?.id) continue;
       const { data: row } = await supabase
         .from("bf_footwear")
-        .select("worn_hours, played_count, dried_count, sockless_count")
+        .select("worn_hours, played_count, dried_count, sockless_count, category")
         .eq("id", it.id)
         .maybeSingle();
       if (!row) continue;
-      await supabase
-        .from("bf_footwear")
-        .update({
-          worn_hours: (Number(row.worn_hours) || 0) + hours,
-          played_count: (Number(row.played_count) || 0) + playedInc,
-          dried_count: (Number(row.dried_count) || 0) + driedInc,
-          sockless_count: (Number(row.sockless_count) || 0) + socklessInc,
-          last_worn_at: new Date().toISOString(),
-        })
-        .eq("id", it.id);
+      const isSock = (it.category ?? row.category) === "socks";
+      // Socks accrue hours + play/dry; shoes only tally being worn bare.
+      const patch = isSock
+        ? {
+            worn_hours: (Number(row.worn_hours) || 0) + hours,
+            played_count: (Number(row.played_count) || 0) + playedInc,
+            dried_count: (Number(row.dried_count) || 0) + driedInc,
+            last_worn_at: new Date().toISOString(),
+          }
+        : {
+            sockless_count: (Number(row.sockless_count) || 0) + socklessInc,
+            last_worn_at: new Date().toISOString(),
+          };
+      await supabase.from("bf_footwear").update(patch).eq("id", it.id);
     }
   }
 

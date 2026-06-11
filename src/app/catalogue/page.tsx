@@ -246,18 +246,22 @@ function ItemCard({
   const [hours, setHours] = useState("");
   const [played, setPlayed] = useState(false);
   const [dried, setDried] = useState(false);
-  const [sockless, setSockless] = useState(false);
 
+  const isSock = it.category === "socks";
   const wornHours = it.worn_hours ?? 0;
   const playedCount = it.played_count ?? 0;
   const driedCount = it.dried_count ?? 0;
   const socklessCount = it.sockless_count ?? 0;
 
+  // Socks carry hours + wash state; shoes only carry a "worn bare" tally.
   const wearBits: string[] = [];
-  if (wornHours > 0) wearBits.push(`${Math.round(wornHours)}h since wash`);
-  if (playedCount > 0) wearBits.push(`played ${playedCount}×`);
-  if (driedCount > 0) wearBits.push(`dried ${driedCount}×`);
-  if (socklessCount > 0) wearBits.push(`bare ${socklessCount}×`);
+  if (isSock) {
+    if (wornHours > 0) wearBits.push(`${Math.round(wornHours)}h since wash`);
+    if (playedCount > 0) wearBits.push(`played ${playedCount}×`);
+    if (driedCount > 0) wearBits.push(`dried ${driedCount}×`);
+  } else if (socklessCount > 0) {
+    wearBits.push(`worn bare ${socklessCount}×`);
+  }
 
   async function logWear() {
     setBusy(true);
@@ -268,14 +272,12 @@ function ItemCard({
         worn_hours: wornHours + h,
         played_count: playedCount + (played ? 1 : 0),
         dried_count: driedCount + (dried ? 1 : 0),
-        sockless_count: socklessCount + (sockless ? 1 : 0),
         last_worn_at: new Date().toISOString(),
       })
       .eq("id", it.id);
     setHours("");
     setPlayed(false);
     setDried(false);
-    setSockless(false);
     setOpen(false);
     setBusy(false);
     await onChanged();
@@ -290,6 +292,19 @@ function ItemCard({
         played_count: 0,
         dried_count: 0,
         last_washed_at: new Date().toISOString(),
+      })
+      .eq("id", it.id);
+    setBusy(false);
+    await onChanged();
+  }
+
+  async function markBare() {
+    setBusy(true);
+    await supabase
+      .from("bf_footwear")
+      .update({
+        sockless_count: socklessCount + 1,
+        last_worn_at: new Date().toISOString(),
       })
       .eq("id", it.id);
     setBusy(false);
@@ -330,19 +345,31 @@ function ItemCard({
 
       {/* Controls */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
-        >
-          {open ? "Close" : "Log wear"}
-        </button>
-        <button
-          onClick={markWashed}
-          disabled={busy}
-          className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
-        >
-          Mark washed
-        </button>
+        {isSock ? (
+          <>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              {open ? "Close" : "Log wear"}
+            </button>
+            <button
+              onClick={markWashed}
+              disabled={busy}
+              className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            >
+              Mark washed
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={markBare}
+            disabled={busy}
+            className="font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+          >
+            Worn bare once
+          </button>
+        )}
         {it.photo_path && (
           <button
             onClick={onReprofile}
@@ -353,7 +380,7 @@ function ItemCard({
         )}
       </div>
 
-      {open && (
+      {isSock && open && (
         <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
           <label className="block text-xs text-neutral-500">
             Roughly how many hours did you wear them?
@@ -385,15 +412,6 @@ function ItemCard({
                 className="h-3.5 w-3.5 accent-neutral-900 dark:accent-white"
               />
               Got wet then dried out
-            </label>
-            <label className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={sockless}
-                onChange={(e) => setSockless(e.target.checked)}
-                className="h-3.5 w-3.5 accent-neutral-900 dark:accent-white"
-              />
-              Worn with no socks
             </label>
           </div>
           <button

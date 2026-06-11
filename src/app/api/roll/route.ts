@@ -284,10 +284,13 @@ export async function POST(request: Request) {
   for (const row of (catalogueRows ?? []) as Array<Record<string, unknown>>) {
     if (typeof row.id === "string") byId.set(row.id, row);
   }
-  const refMap = new Map<string, { id: string | null; name: string }>();
+  const refMap = new Map<
+    string,
+    { id: string | null; name: string; category: string }
+  >();
   const footwearLines: string[] = footwear.map((f, i) => {
     const ref = `F${i + 1}`;
-    refMap.set(ref, { id: f.id ?? null, name: f.name });
+    refMap.set(ref, { id: f.id ?? null, name: f.name, category: f.category });
     const row = f.id ? byId.get(f.id) : undefined;
     const item: FootwearForRoll = {
       id: f.id ?? ref,
@@ -420,8 +423,10 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   // "mark done" can log wear against them. Only items with a real id count.
   const wearItems = authored.wear_refs
     .map((r) => refMap.get(r.trim().toUpperCase()))
-    .filter((x): x is { id: string | null; name: string } => !!x && !!x.id)
-    .map((x) => ({ id: x.id as string, name: x.name }));
+    .filter(
+      (x): x is { id: string; name: string; category: string } => !!x && !!x.id
+    )
+    .map((x) => ({ id: x.id, name: x.name, category: x.category }));
   const wearJson =
     wearItems.length || authored.sockless
       ? { items: wearItems, sockless: authored.sockless }

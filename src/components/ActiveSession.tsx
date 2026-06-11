@@ -6,7 +6,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { RARITY_META, type Rarity } from "@/lib/decider";
 
-type WearItem = { id: string; name: string };
+type WearItem = { id: string; name: string; category?: string };
 
 export type ActiveChallenge = {
   id: string;
@@ -60,9 +60,12 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
     const items = Array.isArray(wj?.items)
       ? wj!.items.filter((i): i is WearItem => !!i?.id)
       : [];
+    // Only socks carry hours — show the form just for them. A sockless-shoe
+    // verdict (no socks) resolves straight away; the server tallies the shoe.
+    const socks = items.filter((i) => i.category === "socks");
     setBusy(false);
-    if (items.length > 0) {
-      setWearItems(items);
+    if (socks.length > 0) {
+      setWearItems(socks);
     } else {
       resolve("completed");
     }
