@@ -13,6 +13,9 @@ export type PlayerStats = {
   distinctLocations: number;
   bestMatch: number; // highest proof match confidence seen
   rarityCounts: Record<Rarity, number>;
+  prepDone: number; // prep tasks the Decider set that you've paid off
+  gamesReported: number; // game follow-ups answered
+  losingStreak: number; // current consecutive disappointing games
 };
 
 export type Achievement = {
@@ -82,5 +85,23 @@ export const ACHIEVEMENTS: Achievement[] = [
     label: "Veteran",
     description: "Reach 25 total rolls.",
     test: (s) => s.totalRolls >= 25,
+  },
+  {
+    key: "forward-planner",
+    label: "Forward Planner",
+    description: "Pay off a prep task the Decider set in advance.",
+    test: (s) => s.prepDone >= 1,
+  },
+  {
+    key: "match-report",
+    label: "Match Report",
+    description: "Report back on a scheduled game.",
+    test: (s) => s.gamesReported >= 1,
+  },
+  {
+    key: "down-bad",
+    label: "Down Bad",
+    description: "Be on a losing streak of 3 — the Decider turns nasty.",
+    test: (s) => s.losingStreak >= 3,
   },
 ];

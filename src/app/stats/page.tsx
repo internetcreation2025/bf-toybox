@@ -17,17 +17,32 @@ type ChallengeRow = {
 export default async function StatsPage() {
   const supabase = await createClient();
 
-  const [{ data: challenges }, { data: streak }, { count: footwearCount }] =
-    await Promise.all([
-      supabase
-        .from("bf_challenges")
-        .select("rarity, verdict_type, status, verification_json, schedule_json"),
-      supabase
-        .from("bf_streak")
-        .select("current_streak, longest_streak, freeze_tokens")
-        .maybeSingle(),
-      supabase.from("bf_footwear").select("*", { count: "exact", head: true }),
-    ]);
+  const [
+    { data: challenges },
+    { data: streak },
+    { count: footwearCount },
+    { count: prepDone },
+    { count: gamesReported },
+  ] = await Promise.all([
+    supabase
+      .from("bf_challenges")
+      .select("rarity, verdict_type, status, verification_json, schedule_json"),
+    supabase
+      .from("bf_streak")
+      .select("current_streak, longest_streak, freeze_tokens, losing_streak")
+      .maybeSingle(),
+    supabase.from("bf_footwear").select("*", { count: "exact", head: true }),
+    supabase
+      .from("bf_memory")
+      .select("*", { count: "exact", head: true })
+      .eq("kind", "prep")
+      .eq("status", "done"),
+    supabase
+      .from("bf_memory")
+      .select("*", { count: "exact", head: true })
+      .eq("kind", "game")
+      .eq("status", "done"),
+  ]);
 
   const rows = (challenges ?? []) as ChallengeRow[];
 
@@ -66,6 +81,9 @@ export default async function StatsPage() {
     distinctLocations: locations.size,
     bestMatch,
     rarityCounts,
+    prepDone: prepDone ?? 0,
+    gamesReported: gamesReported ?? 0,
+    losingStreak: streak?.losing_streak ?? 0,
   };
 
   const resolved = wins + fails;
