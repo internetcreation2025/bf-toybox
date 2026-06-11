@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 // Middleware guarantees only the allowlisted owner reaches this page.
@@ -9,8 +10,8 @@ export default async function Home() {
 
   const sections = [
     { href: "/roll", label: "Roll my next 4 hours", soon: true },
-    { href: "/feet", label: "Teach it my feet", soon: true },
-    { href: "/catalogue", label: "Footwear catalogue", soon: true },
+    { href: "/feet", label: "Teach it my feet", soon: false },
+    { href: "/catalogue", label: "Footwear catalogue", soon: false },
     { href: "/archive", label: "Archive", soon: true },
     { href: "/stats", label: "Stats & achievements", soon: true },
     { href: "/settings", label: "Settings", soon: true },
@@ -36,19 +37,28 @@ export default async function Home() {
       </header>
 
       <section className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {sections.map((s) => (
-          <div
-            key={s.href}
-            className="flex items-center justify-between rounded-xl border border-neutral-200 p-5 dark:border-neutral-800"
-          >
-            <span className="font-medium">{s.label}</span>
-            {s.soon && (
+        {sections.map((s) =>
+          s.soon ? (
+            <div
+              key={s.href}
+              className="flex items-center justify-between rounded-xl border border-neutral-200 p-5 text-neutral-400 dark:border-neutral-800"
+            >
+              <span className="font-medium">{s.label}</span>
               <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-900">
                 soon
               </span>
-            )}
-          </div>
-        ))}
+            </div>
+          ) : (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="flex items-center justify-between rounded-xl border border-neutral-200 p-5 transition-colors hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+            >
+              <span className="font-medium">{s.label}</span>
+              <span aria-hidden>→</span>
+            </Link>
+          )
+        )}
       </section>
 
       <p className="mt-10 text-center text-xs text-neutral-400">
