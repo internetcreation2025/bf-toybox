@@ -14,7 +14,6 @@ export type FootAngleKey = (typeof FOOT_ANGLES)[number]["key"];
 
 // Footwear catalogue categories.
 export const FOOTWEAR_CATEGORIES = [
-  "barefoot",
   "socks",
   "slides",
   "flip_flops",
