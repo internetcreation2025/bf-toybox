@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { RARITY_META, type Rarity } from "@/lib/decider";
+import { type Rarity } from "@/lib/decider";
+import { VerdictCard } from "@/components/VerdictCard";
 
 type Slot = { label: string; activity: string; location: string };
 type FootwearItem = { name: string; category: string };
@@ -19,8 +21,15 @@ type RollResult = {
   today: string;
 };
 
+const SEAL_OPTIONS = [
+  { label: "30 min", minutes: 30 },
+  { label: "1 hour", minutes: 60 },
+  { label: "2 hours", minutes: 120 },
+];
+
 export default function RollPage() {
   const supabase = createClient();
+  const router = useRouter();
   const [step, setStep] = useState<"schedule" | "footwear" | "result">(
     "schedule"
   );
@@ -69,6 +78,10 @@ export default function RollPage() {
     return [...fromCatalogue, ...extras];
   }, [catalogue, selected, adHoc]);
 
+  // ── mystery envelope ──
+  const [seal, setSeal] = useState(false);
+  const [sealMinutes, setSealMinutes] = useState(60);
+
   // ── rolling / result ──
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState("");
@@ -76,7 +89,7 @@ export default function RollPage() {
   const [revealed, setRevealed] = useState(false);
   const [usedDouble, setUsedDouble] = useState(false);
 
-  async function doRoll(doubleOrNothing: boolean) {
+  async function doRoll(opts: { doubleOrNothing?: boolean; sealMinutes?: number }) {
     setRolling(true);
     setError("");
     setRevealed(false);
@@ -87,14 +100,23 @@ export default function RollPage() {
         body: JSON.stringify({
           schedule: slots,
           footwear: onHand,
-          doubleOrNothing,
+          doubleOrNothing: !!opts.doubleOrNothing,
+          sealMinutes: opts.sealMinutes ?? 0,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Roll failed");
+
+      // Sealed → straight to the envelope; the verdict stays hidden until it
+      // unlocks.
+      if (json.sealed) {
+        router.push(`/envelope/${json.id}`);
+        return;
+      }
+
       setResult(json as RollResult);
       setStep("result");
-      if (doubleOrNothing) setUsedDouble(true);
+      if (opts.doubleOrNothing) setUsedDouble(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Roll failed");
     } finally {
@@ -222,6 +244,45 @@ export default function RollPage() {
             className="mt-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
 
+          {/* Mystery envelope */}
+          <div className="mt-5 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={seal}
+                onChange={(e) => setSeal(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-neutral-900 dark:accent-white"
+              />
+              <span>
+                <span className="text-sm font-medium">
+                  Make it a timed mystery envelope
+                </span>
+                <span className="mt-0.5 block text-xs text-neutral-400">
+                  Seal the verdict away — you won&apos;t see it until the timer
+                  runs out.
+                </span>
+              </span>
+            </label>
+
+            {seal && (
+              <div className="mt-3 flex flex-wrap gap-2 pl-7">
+                {SEAL_OPTIONS.map((o) => (
+                  <button
+                    key={o.minutes}
+                    onClick={() => setSealMinutes(o.minutes)}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                      sealMinutes === o.minutes
+                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                        : "border-neutral-300 dark:border-neutral-700"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
           <div className="mt-4 flex gap-2">
@@ -233,10 +294,16 @@ export default function RollPage() {
             </button>
             <button
               disabled={onHand.length === 0 || rolling}
-              onClick={() => doRoll(false)}
+              onClick={() => doRoll({ sealMinutes: seal ? sealMinutes : 0 })}
               className="flex-1 rounded-lg bg-neutral-900 px-4 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
             >
-              {rolling ? "Rolling…" : "Roll my verdict"}
+              {rolling
+                ? seal
+                  ? "Sealing…"
+                  : "Rolling…"
+                : seal
+                ? "Seal my envelope"
+                : "Roll my verdict"}
             </button>
           </div>
         </div>
@@ -265,7 +332,7 @@ export default function RollPage() {
               {!usedDouble && (
                 <button
                   disabled={rolling}
-                  onClick={() => doRoll(true)}
+                  onClick={() => doRoll({ doubleOrNothing: true })}
                   className="w-full rounded-lg border border-amber-400 px-4 py-3 text-sm font-medium text-amber-600 hover:bg-amber-50 disabled:opacity-40 dark:hover:bg-amber-950/30"
                 >
                   {rolling ? "Re-rolling…" : "Double or nothing — spicier dare, bigger stakes"}
@@ -295,8 +362,6 @@ function RevealCard({
   revealed: boolean;
   onReveal: () => void;
 }) {
-  const meta = RARITY_META[result.rarity];
-
   if (!revealed) {
     return (
       <button
@@ -310,42 +375,8 @@ function RevealCard({
   }
 
   return (
-    <div
-      className="mt-6 overflow-hidden rounded-2xl border-2 p-6 shadow-lg transition-all"
-      style={{ borderColor: meta.colour, boxShadow: `0 10px 40px -12px ${meta.colour}` }}
-    >
-      <div className="flex items-center justify-between">
-        <span
-          className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white"
-          style={{ backgroundColor: meta.colour }}
-        >
-          {meta.label}
-        </span>
-        <span className="text-xs uppercase tracking-wide text-neutral-400">
-          {result.verdictType === "dare" ? "Dare" : "Verdict"}
-        </span>
-      </div>
-
-      {result.flavor && (
-        <p className="mt-4 text-lg font-medium italic">{result.flavor}</p>
-      )}
-      <p className="mt-3 text-base">{result.instruction}</p>
-
-      {result.proofRequired && (
-        <div className="mt-5 rounded-xl bg-neutral-50 p-4 dark:bg-neutral-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Proof required
-          </p>
-          <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
-            {result.proofElements.map((el, i) => (
-              <li key={i}>{el}</li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-neutral-400">
-            Reveal complete — submit your photo proof to lock in the win.
-          </p>
-        </div>
-      )}
+    <div className="mt-6">
+      <VerdictCard data={result} />
     </div>
   );
 }

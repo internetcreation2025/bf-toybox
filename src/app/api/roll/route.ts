@@ -81,9 +81,17 @@ export async function POST(request: Request) {
     schedule?: Slot[];
     footwear?: FootwearItem[];
     doubleOrNothing?: boolean;
+    sealMinutes?: number;
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
+  const sealMinutes =
+    typeof body.sealMinutes === "number" && body.sealMinutes > 0
+      ? Math.min(body.sealMinutes, 24 * 60)
+      : 0;
+  const sealedUntil = sealMinutes
+    ? new Date(Date.now() + sealMinutes * 60000).toISOString()
+    : null;
 
   if (
     schedule.length < 4 ||
@@ -194,7 +202,8 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
       instruction: authored.instruction,
       flavor: authored.flavor,
       proof_required_json: proofRequiredJson,
-      status: "issued",
+      status: sealedUntil ? "sealed" : "issued",
+      sealed_until: sealedUntil,
     })
     .select("id")
     .single();
@@ -204,7 +213,18 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     .from("bf_streak")
     .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
 
-  console.log("[roll] done", rarity);
+  console.log("[roll] done", rarity, sealedUntil ? "(sealed)" : "");
+
+  // Sealed: withhold the verdict entirely — the client only learns it exists
+  // and when it unlocks. Content is fetched later via /api/envelope/open.
+  if (sealedUntil) {
+    return NextResponse.json({
+      id: inserted?.id,
+      sealed: true,
+      sealedUntil,
+    });
+  }
+
   return NextResponse.json({
     id: inserted?.id,
     rarity,

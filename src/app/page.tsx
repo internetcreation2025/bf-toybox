@@ -7,10 +7,22 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { data: streak } = await supabase
-    .from("bf_streak")
-    .select("current_streak, longest_streak, freeze_tokens")
-    .maybeSingle();
+  const [{ data: streak }, { data: sealed }] = await Promise.all([
+    supabase
+      .from("bf_streak")
+      .select("current_streak, longest_streak, freeze_tokens")
+      .maybeSingle(),
+    supabase
+      .from("bf_challenges")
+      .select("id, sealed_until")
+      .eq("status", "sealed")
+      .order("sealed_until", { ascending: true }),
+  ]);
+
+  const sealedEnvelopes = (sealed ?? []) as Array<{
+    id: string;
+    sealed_until: string | null;
+  }>;
 
   const sections = [
     { href: "/roll", label: "Roll my next 4 hours", soon: false },
@@ -18,7 +30,7 @@ export default async function Home() {
     { href: "/catalogue", label: "Footwear catalogue", soon: false },
     { href: "/settings", label: "The Decider (settings)", soon: false },
     { href: "/archive", label: "Archive", soon: false },
-    { href: "/stats", label: "Stats & achievements", soon: true },
+    { href: "/stats", label: "Stats & achievements", soon: false },
   ];
 
   return (
@@ -45,6 +57,28 @@ export default async function Home() {
         <Stat label="Best streak" value={streak?.longest_streak ?? 0} />
         <Stat label="Freeze tokens" value={streak?.freeze_tokens ?? 0} />
       </div>
+
+      {sealedEnvelopes.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            Sealed envelopes
+          </h2>
+          <div className="mt-3 space-y-2">
+            {sealedEnvelopes.map((e) => (
+              <Link
+                key={e.id}
+                href={`/envelope/${e.id}`}
+                className="flex items-center justify-between rounded-xl border border-dashed border-neutral-300 p-4 transition-colors hover:border-neutral-500 dark:border-neutral-700"
+              >
+                <span className="font-medium">A verdict awaits</span>
+                <span className="text-sm text-neutral-500">
+                  {sealedLabel(e.sealed_until)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {sections.map((s) =>
@@ -76,6 +110,17 @@ export default async function Home() {
       </p>
     </main>
   );
+}
+
+function sealedLabel(sealedUntil: string | null): string {
+  if (!sealedUntil) return "Ready to open";
+  const t = new Date(sealedUntil).getTime();
+  if (t <= Date.now()) return "Ready to open";
+  const time = new Date(sealedUntil).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `Opens ${time}`;
 }
 
 function Stat({ label, value }: { label: string; value: number }) {
