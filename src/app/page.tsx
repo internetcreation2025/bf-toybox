@@ -7,14 +7,18 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const { data: streak } = await supabase
+    .from("bf_streak")
+    .select("current_streak, longest_streak, freeze_tokens")
+    .maybeSingle();
 
   const sections = [
-    { href: "/roll", label: "Roll my next 4 hours", soon: true },
+    { href: "/roll", label: "Roll my next 4 hours", soon: false },
     { href: "/feet", label: "Teach it my feet", soon: false },
     { href: "/catalogue", label: "Footwear catalogue", soon: false },
+    { href: "/settings", label: "The Decider (settings)", soon: false },
     { href: "/archive", label: "Archive", soon: true },
     { href: "/stats", label: "Stats & achievements", soon: true },
-    { href: "/settings", label: "Settings", soon: true },
   ];
 
   return (
@@ -36,7 +40,13 @@ export default async function Home() {
         </form>
       </header>
 
-      <section className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-3 gap-3">
+        <Stat label="Current streak" value={streak?.current_streak ?? 0} />
+        <Stat label="Best streak" value={streak?.longest_streak ?? 0} />
+        <Stat label="Freeze tokens" value={streak?.freeze_tokens ?? 0} />
+      </div>
+
+      <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {sections.map((s) =>
           s.soon ? (
             <div
@@ -62,8 +72,17 @@ export default async function Home() {
       </section>
 
       <p className="mt-10 text-center text-xs text-neutral-400">
-        Phase 0 complete — the app is locked to you. Features arrive next.
+        Roll for a verdict, complete it, keep the streak alive.
       </p>
     </main>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-neutral-200 p-4 text-center dark:border-neutral-800">
+      <div className="text-2xl font-semibold tabular-nums">{value}</div>
+      <div className="mt-1 text-xs text-neutral-500">{label}</div>
+    </div>
   );
 }
