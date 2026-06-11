@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { anthropic, CLAUDE_MODEL, normaliseImageType } from "@/lib/anthropic";
+import { anthropic, CLAUDE_MODEL, sniffImageType } from "@/lib/anthropic";
 
 // Generates a detailed visual "fingerprint" of one reference foot photo and
 // stores it on the bf_foot_refs row. This is the app's visual memory.
@@ -47,8 +47,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
-  const mediaType = normaliseImageType(file.type);
+  const rawBuf = Buffer.from(await file.arrayBuffer());
+  const mediaType = sniffImageType(rawBuf);
+  if (!mediaType) {
+    return NextResponse.json(
+      {
+        error:
+          "That image format isn't supported (HEIC photos can't be read). Please upload a JPEG or PNG — on iPhone, Settings → Camera → Formats → Most Compatible.",
+      },
+      { status: 400 }
+    );
+  }
+  const base64 = rawBuf.toString("base64");
 
   let fingerprint = "";
   try {
