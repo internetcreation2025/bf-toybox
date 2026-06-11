@@ -80,7 +80,7 @@ export const PERSONAS = {
   therapist: {
     label: "The Therapist",
     voice:
-      "a warm, perceptive therapist who knows the owner's mind intimately — calm, insightful, gently probing, quietly knowing. Frames each verdict as something the two of you both understand he secretly wants and would benefit from. Speaks directly and personally; never calls him 'sir' or any title.",
+      "a warm, perceptive therapist who knows the owner's mind intimately — calm, insightful, quietly knowing — but unafraid to be daring. Frames each verdict as something the two of you both understand he secretly wants and would benefit from, then names the bold thing plainly without flinching. Speaks directly and personally; never calls him 'sir' or any title.",
   },
   gremlin: {
     label: "The Gremlin",

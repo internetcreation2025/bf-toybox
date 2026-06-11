@@ -15,7 +15,23 @@ import {
 type Slot = { label: string; activity: string; location: string };
 type FootwearItem = { name: string; category: string };
 
-type Authored = { instruction: string; flavor: string; proof_elements: string[] };
+type Authored = {
+  instruction: string;
+  flavor: string;
+  proof_elements: string[];
+  prep_tasks: string[];
+};
+
+const SPORT_RE =
+  /\b(padel|paddle|racket\s?ball|racquet\s?ball|squash|tennis|badminton)\b/i;
+
+function detectSport(schedule: Slot[]): string | null {
+  for (const s of schedule) {
+    const m = `${s.activity} ${s.label}`.match(SPORT_RE);
+    if (m) return m[1].toLowerCase().replace(/\s+/g, "");
+  }
+  return null;
+}
 
 function parseAuthored(text: string, fallback: Authored): Authored {
   try {
@@ -23,6 +39,13 @@ function parseAuthored(text: string, fallback: Authored): Authored {
     const end = text.lastIndexOf("}");
     if (start === -1 || end === -1) return fallback;
     const json = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+    const strings = (v: unknown): string[] =>
+      Array.isArray(v)
+        ? v
+            .filter((x): x is string => typeof x === "string")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
     return {
       instruction:
         typeof json.instruction === "string" && json.instruction.trim()
@@ -32,6 +55,7 @@ function parseAuthored(text: string, fallback: Authored): Authored {
       proof_elements: Array.isArray(json.proof_elements)
         ? json.proof_elements.filter((x): x is string => typeof x === "string")
         : fallback.proof_elements,
+      prep_tasks: strings(json.prep_tasks).slice(0, 3),
     };
   } catch {
     return fallback;
@@ -81,12 +105,17 @@ export async function POST(request: Request) {
     schedule?: Slot[];
     footwear?: FootwearItem[];
     context?: string;
+    smell?: number;
     doubleOrNothing?: boolean;
     sealMinutes?: number;
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
   const context = (body.context ?? "").trim().slice(0, 2000);
+  const smell =
+    typeof body.smell === "number" && body.smell >= 0 && body.smell <= 10
+      ? Math.round(body.smell)
+      : null;
   const sealMinutes =
     typeof body.sealMinutes === "number" && body.sealMinutes > 0
       ? Math.min(body.sealMinutes, 24 * 60)
@@ -127,7 +156,33 @@ export async function POST(request: Request) {
     settings?.custom_instructions
   );
 
-  const rarity = rollRarity(weights, !!body.doubleOrNothing);
+  // The Decider's persistent memory + the losing streak.
+  const { data: openMemory } = await supabase
+    .from("bf_memory")
+    .select("id, kind, title, sport, game_on")
+    .eq("status", "open")
+    .order("created_at", { ascending: true });
+  const prepItems = (openMemory ?? []).filter((m) => m.kind === "prep");
+  const gameItems = (openMemory ?? []).filter((m) => m.kind === "game");
+
+  const { data: streakRow } = await supabase
+    .from("bf_streak")
+    .select("losing_streak")
+    .maybeSingle();
+  const losingStreak = streakRow?.losing_streak ?? 0;
+  const revolting = losingStreak >= 3;
+  const losingNote =
+    losingStreak > 0
+      ? `The owner is on a losing streak of ${losingStreak} disappointing game result(s). ${
+          revolting
+            ? "This dare must be genuinely revolting or obscure — push well past comfortable."
+            : "Raise the daringness to match the frustration."
+        }`
+      : "";
+
+  // Losing streak forces the spicier tiers, like a double-or-nothing.
+  const forceSpicy = !!body.doubleOrNothing || losingStreak >= 2;
+  const rarity = rollRarity(weights, forceSpicy);
   const brief = rarityBrief(rarity);
   const weather = await getWeather(schedule[0]?.location);
   const today = new Date().toLocaleDateString("en-GB", {
@@ -135,6 +190,20 @@ export async function POST(request: Request) {
     month: "short",
     year: "numeric",
   });
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // If a competitive game is on the schedule, set a follow-up so a later
+  // session asks how it went (dedup on sport + date).
+  const sport = detectSport(schedule);
+  if (sport && !gameItems.some((g) => g.sport === sport && g.game_on === todayIso)) {
+    await supabase.from("bf_memory").insert({
+      user_id: user.id,
+      kind: "game",
+      title: `How did the ${sport} on ${today} go?`,
+      sport,
+      game_on: todayIso,
+    });
+  }
 
   const prompt = `${instructions}
 
@@ -154,6 +223,15 @@ ${
     ? `Notes from the owner (use these — they may include game results/performance, foot or sock state, mood, or something he prepped earlier and is now carrying): ${context}`
     : ""
 }
+${
+  prepItems.length
+    ? `Prep tasks you set in earlier sessions that are still open — reference or pay these off when the moment fits, and do not re-issue them: ${prepItems
+        .map((p) => p.title)
+        .join("; ")}`
+    : ""
+}
+${smell !== null ? `Current footwear/sock smell index the owner reports: ${smell}/10.` : ""}
+${losingNote}
 Today's date: ${today}
 
 Rolled rarity: ${rarity.toUpperCase()}. Tier directive: ${brief.guide}
@@ -167,13 +245,15 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     brief.proofRequired
       ? `["2 to 5 specific things that must appear in the proof photo — include the bare feet, an object proving the location/context, and today's date (${today}) written on the foot in pen; state the expected foot condition (clean, or slightly dirty/sweaty); and if the dare hinges on condition, wear or smell, require a clear CLOSE-UP that shows it"]`
       : "[]"
-  }
+  },
+  "prep_tasks": ["zero or more short imperative tasks the owner must prepare DAYS IN ADVANCE for future sessions (e.g. 'Keep the sweaty socks from your next two padel games, dried and bagged, and carry them'); [] if none this round. Only set these on the more adventurous tiers."]
 }`;
 
   const fallback: Authored = {
     instruction: brief.guide,
     flavor: "",
     proof_elements: [],
+    prep_tasks: [],
   };
   let authored = fallback;
   try {
@@ -221,6 +301,18 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   await supabase
     .from("bf_streak")
     .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
+
+  // Remember any prep-ahead tasks the Decider set. Skip when sealed so the
+  // hidden verdict isn't spoiled on the dashboard.
+  if (!sealedUntil && authored.prep_tasks.length) {
+    await supabase.from("bf_memory").insert(
+      authored.prep_tasks.map((t) => ({
+        user_id: user.id,
+        kind: "prep",
+        title: t.slice(0, 300),
+      }))
+    );
+  }
 
   console.log("[roll] done", rarity, sealedUntil ? "(sealed)" : "");
 

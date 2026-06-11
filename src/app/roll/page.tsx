@@ -91,6 +91,10 @@ export default function RollPage() {
     return [...fromCatalogue, ...extras];
   }, [catalogue, selected, adHoc]);
 
+  // ── smell index ──
+  const [smellOn, setSmellOn] = useState(false);
+  const [smell, setSmell] = useState(5);
+
   // ── mystery envelope ──
   const [seal, setSeal] = useState(false);
   const [sealMinutes, setSealMinutes] = useState(60);
@@ -114,6 +118,7 @@ export default function RollPage() {
           schedule: filledSlots,
           footwear: onHand,
           context: context.trim(),
+          smell: smellOn ? smell : undefined,
           doubleOrNothing: !!opts.doubleOrNothing,
           sealMinutes: opts.sealMinutes ?? 0,
         }),
@@ -279,8 +284,49 @@ export default function RollPage() {
             className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm leading-relaxed outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
 
+          {/* Smell index */}
+          <div className="mt-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={smellOn}
+                onChange={(e) => setSmellOn(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-neutral-900 dark:accent-white"
+              />
+              <span>
+                <span className="text-sm font-medium">
+                  Factor in smell
+                </span>
+                <span className="mt-0.5 block text-xs text-neutral-400">
+                  Tell the Decider how strong your footwear/socks smell right now.
+                </span>
+              </span>
+            </label>
+
+            {smellOn && (
+              <div className="mt-4 pl-7">
+                <div className="flex items-center justify-between text-xs text-neutral-500">
+                  <span>Fresh</span>
+                  <span className="text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+                    {smell}/10
+                  </span>
+                  <span>Foul</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={smell}
+                  onChange={(e) => setSmell(Number(e.target.value))}
+                  className="mt-2 w-full accent-neutral-900 dark:accent-white"
+                />
+              </div>
+            )}
+          </div>
+
           {/* Mystery envelope */}
-          <div className="mt-5 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="mt-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
             <label className="flex cursor-pointer items-start gap-3">
               <input
                 type="checkbox"

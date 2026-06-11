@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ActiveSession, type ActiveChallenge } from "@/components/ActiveSession";
+import { GameFollowup, type GameMemory } from "@/components/GameFollowup";
+import { PrepMemory, type PrepItem } from "@/components/PrepMemory";
 
 // Middleware guarantees only the allowlisted owner reaches this page.
 export default async function Home() {
@@ -8,21 +10,38 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [{ data: streak }, { data: active }] = await Promise.all([
-    supabase
-      .from("bf_streak")
-      .select("current_streak, longest_streak, freeze_tokens")
-      .maybeSingle(),
-    supabase
-      .from("bf_challenges")
-      .select(
-        "id, rarity, verdict_type, instruction, flavor, proof_required_json, status"
-      )
-      .in("status", ["issued", "sealed"])
-      .order("created_at", { ascending: false }),
-  ]);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [{ data: streak }, { data: active }, { data: games }, { data: preps }] =
+    await Promise.all([
+      supabase
+        .from("bf_streak")
+        .select("current_streak, longest_streak, freeze_tokens")
+        .maybeSingle(),
+      supabase
+        .from("bf_challenges")
+        .select(
+          "id, rarity, verdict_type, instruction, flavor, proof_required_json, status"
+        )
+        .in("status", ["issued", "sealed"])
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("bf_memory")
+        .select("id, title, sport")
+        .eq("kind", "game")
+        .eq("status", "open")
+        .lte("game_on", todayIso)
+        .order("game_on", { ascending: true }),
+      supabase
+        .from("bf_memory")
+        .select("id, title")
+        .eq("kind", "prep")
+        .eq("status", "open")
+        .order("created_at", { ascending: true }),
+    ]);
 
   const activeSessions = (active ?? []) as ActiveChallenge[];
+  const gameFollowups = (games ?? []) as GameMemory[];
+  const prepItems = (preps ?? []) as PrepItem[];
 
   const sections = [
     { href: "/roll", label: "Roll my next 4 hours", soon: false },
@@ -58,6 +77,19 @@ export default async function Home() {
         <Stat label="Freeze tokens" value={streak?.freeze_tokens ?? 0} />
       </div>
 
+      {gameFollowups.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            How did it go?
+          </h2>
+          <div className="mt-3 space-y-3">
+            {gameFollowups.map((g) => (
+              <GameFollowup key={g.id} memory={g} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {activeSessions.length > 0 && (
         <section className="mt-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
@@ -67,6 +99,21 @@ export default async function Home() {
             {activeSessions.map((c) => (
               <ActiveSession key={c.id} challenge={c} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {prepItems.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            The Decider remembers
+          </h2>
+          <p className="mt-1 text-xs text-neutral-400">
+            Prep tasks it set for the future. Mark done when you&apos;ve handled
+            them.
+          </p>
+          <div className="mt-3">
+            <PrepMemory items={prepItems} />
           </div>
         </section>
       )}

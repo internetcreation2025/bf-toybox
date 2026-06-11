@@ -23,6 +23,8 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const meta = RARITY_META[challenge.rarity];
   const sealed = challenge.status === "sealed";
   const proofRequired = Array.isArray(challenge.proof_required_json);
+  // A proof obligation can't be quietly cancelled — it stays until you submit.
+  const canCancel = sealed || !proofRequired;
 
   async function resolve(outcome: "completed" | "cancelled") {
     setBusy(true);
@@ -99,15 +101,22 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
             {busy ? "…" : "Mark as done"}
           </button>
         )}
-        <button
-          onClick={() => resolve("cancelled")}
-          disabled={busy}
-          className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:hover:text-neutral-100"
-        >
-          Cancel
-        </button>
+        {canCancel && (
+          <button
+            onClick={() => resolve("cancelled")}
+            disabled={busy}
+            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:hover:text-neutral-100"
+          >
+            Cancel
+          </button>
+        )}
       </div>
 
+      {!canCancel && (
+        <p className="mt-3 text-xs text-neutral-400">
+          This one needs proof — it stays here until you submit it.
+        </p>
+      )}
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
     </div>
   );
