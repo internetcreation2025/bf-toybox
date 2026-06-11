@@ -123,7 +123,54 @@ ADVANCE PREP & MEMORY — you may set tasks that must be prepared days ahead and
 
 PERFORMANCE FUELS INTENSITY — his schedule or notes may mention a competitive game (padel, racketball). If he reports a loss or a low/disappointing performance, you may raise the daringness; a strong result can keep things lighter.
 
+WHAT TO WEAR — IT IS YOUR CALL. You are given his catalogue with each item's "dossier" (material, breathability, formality, condition) and its live WEAR STATE. Name the SPECIFIC footwear AND the specific socks he is to wear (or send him sockless) — return your picks in wear_refs. Reason from reality:
+- Dress for the occasion and the weather. Never pair formal footwear with casual dress — e.g. if he's in shorts, no dress shoes; smart setting, no scruffy slides.
+- Use the dossier + wear state to set a BELIEVABLE smell/condition. worn_hours is hours since the last wash; played_count is sport sessions since wash; dried_count is wet-then-dried re-wears (each one pushes smell and revulsion higher); sockless_count is how often a shoe has been worn bare. A breathable mesh trainer stays fresher than a sealed leather shoe; a sock several sessions deep, especially one played and dried, is ripe.
+- It is your call which socks (and whether any). You may deliberately reach for the grungiest, most-worn pair for a spicier dare, or keep things fresh when that fits. If you send him sockless in a shoe, say so plainly (it gets tallied).
+
+FOOT MAINTENANCE — pay attention to the condition of his feet (from his notes and any proof close-ups). When it's genuinely warranted you may set an upkeep task — trim a nail or two, file hard skin, scrub, moisturise — as the verdict itself or as a prep/diary task, and you can ask for an "after" close-up to confirm. Don't force it every time; only when it fits.
+
 SAFETY & TASTE — dares must be physically safe, legal, and not alarm or involve other people. Hygiene limits are his own comfort with his own feet and footwear; never involve anyone else. Keep it doable.`;
+
+// ─── Footwear dossier + wear state ───────────────────────────────────────────
+// The AI profile Claude writes from a footwear photo, stored on bf_footwear.dossier.
+export type Dossier = {
+  material: string;
+  breathability: string; // low | medium | high
+  formality: string; // casual | smart | formal
+  condition: string;
+  summary: string;
+};
+
+export type FootwearForRoll = {
+  id: string;
+  name: string;
+  category: string;
+  dossier: Dossier | null;
+  worn_hours: number;
+  played_count: number;
+  dried_count: number;
+  sockless_count: number;
+};
+
+// One human line describing an item's dossier + live wear, for the roll prompt.
+export function footwearLine(ref: string, f: FootwearForRoll): string {
+  const bits: string[] = [`[${ref}] ${f.name} (${f.category.replace(/_/g, " ")})`];
+  if (f.dossier) {
+    const d = f.dossier;
+    const dd = [d.material, `${d.breathability} breathability`, d.formality, d.condition]
+      .filter(Boolean)
+      .join(", ");
+    if (dd) bits.push(`— ${dd}`);
+  }
+  const wear: string[] = [];
+  if (f.worn_hours > 0) wear.push(`${Math.round(f.worn_hours)}h worn since wash`);
+  if (f.played_count > 0) wear.push(`played in ${f.played_count}×`);
+  if (f.dried_count > 0) wear.push(`wet-then-dried ${f.dried_count}×`);
+  if (f.sockless_count > 0) wear.push(`worn bare ${f.sockless_count}×`);
+  bits.push(wear.length ? `— wear: ${wear.join(", ")}` : "— fresh/clean");
+  return bits.join(" ");
+}
 
 // Base (owner-edited or default) + the owner's extra instructions, which take
 // priority and may override or omit parts of the base.

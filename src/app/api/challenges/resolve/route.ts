@@ -15,9 +15,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const { challengeId, outcome } = (await request.json()) as {
+  const { challengeId, outcome, wearLog } = (await request.json()) as {
     challengeId?: string;
     outcome?: "completed" | "cancelled";
+    wearLog?: { hours?: number; played?: boolean; dried?: boolean };
   };
   if (!challengeId || (outcome !== "completed" && outcome !== "cancelled")) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
@@ -84,6 +85,40 @@ export async function POST(request: Request) {
       freeze_tokens: tokens,
       token_awarded: tokenAwarded,
     };
+  }
+
+  // Log wear against the footwear the Decider assigned (rough hours from Mike).
+  // ch.wear_json is { items: [{id,name}], sockless }. Silently no-ops if the
+  // column/feature isn't present yet.
+  if (outcome === "completed") {
+    const wj = ch.wear_json as
+      | { items?: Array<{ id?: string }>; sockless?: boolean }
+      | null
+      | undefined;
+    const items = Array.isArray(wj?.items) ? wj!.items : [];
+    const hours = Math.max(0, Number(wearLog?.hours) || 0);
+    const playedInc = wearLog?.played ? 1 : 0;
+    const driedInc = wearLog?.dried ? 1 : 0;
+    const socklessInc = wj?.sockless ? 1 : 0;
+    for (const it of items) {
+      if (!it?.id) continue;
+      const { data: row } = await supabase
+        .from("bf_footwear")
+        .select("worn_hours, played_count, dried_count, sockless_count")
+        .eq("id", it.id)
+        .maybeSingle();
+      if (!row) continue;
+      await supabase
+        .from("bf_footwear")
+        .update({
+          worn_hours: (Number(row.worn_hours) || 0) + hours,
+          played_count: (Number(row.played_count) || 0) + playedInc,
+          dried_count: (Number(row.dried_count) || 0) + driedInc,
+          sockless_count: (Number(row.sockless_count) || 0) + socklessInc,
+          last_worn_at: new Date().toISOString(),
+        })
+        .eq("id", it.id);
+    }
   }
 
   await supabase

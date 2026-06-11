@@ -162,3 +162,13 @@ all live on Vercel.
 - Single-user, private; no auth in v1 (add a simple gate before any public exposure).
 - Shared DB → all tables `bf_`-prefixed to avoid colliding with `mike-test-app1`.
 - Foot-matching is heuristic, not biometric security (documented above).
+
+## Phase 5 — Wear tracking, footwear dossier & foot care (2026-06-11, approved)
+**Who/why:** Mike wants the Decider to reason from the real state of his footwear, not guesswork.
+
+- **Wear state on every footwear item (`bf_footwear`):** `worn_hours` (since last wash), `played_count` (sport sessions since wash), `dried_count` (wet-then-dried re-wears since wash — smell intensifier), `sockless_count` (lifetime times this shoe worn bare), `last_worn_at`, `last_washed_at`. A **wash resets** worn_hours/played/dried. Wear is **logged in rough hours by Mike** (his choice) when he marks a verdict done, plus manual catalogue controls (Log wear / Mark washed).
+- **Footwear dossier (`bf_footwear.dossier` jsonb):** when a photo is uploaded, Claude profiles it — material, breathability, formality, condition, one-line summary. Drives the smell model (leather + sockless + warm = ripe fast; mesh stays sweeter), "dress for the occasion", and deliberate rotation.
+- **Decider picks specific items:** roll sends the catalogue with dossier + wear-state; the Decider names which shoes AND which socks to wear (or sockless), tied to the occasion/attire (no dress shoes with shorts). Choice stored in `bf_challenges.wear_json` so "mark done" can log wear against those items.
+- **Currently wearing:** optional picker on the roll screen so the Decider knows what's already on (and today's wear still counts).
+- **Foot maintenance:** the Decider watches foot condition (notes + proof close-ups) and occasionally sets upkeep (trim a nail, file hard skin, moisturise) — can diarise it and ask for an "after" close-up. Rides existing prep/diary memory; no new table.
+- **Schema Mike runs himself** (classifier blocks me): bf_footwear wear columns + `dossier jsonb`; `bf_challenges.wear_json jsonb`.

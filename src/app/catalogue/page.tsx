@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { resizeImage } from "@/lib/image";
+import type { Dossier } from "@/lib/decider";
 import {
   FOOTWEAR_CATEGORIES,
   prettyCategory,
@@ -17,6 +18,12 @@ type Item = {
   colour: string | null;
   notes: string | null;
   photo_path: string | null;
+  dossier: Dossier | null;
+  worn_hours: number | null;
+  played_count: number | null;
+  dried_count: number | null;
+  sockless_count: number | null;
+  last_washed_at: string | null;
 };
 
 export default function CataloguePage() {
@@ -63,6 +70,15 @@ export default function CataloguePage() {
     load();
   }, [load]);
 
+  // Ask Claude to (re)profile an item's photo into a dossier.
+  const profile = useCallback(async (id: string) => {
+    await fetch("/api/footwear/dossier", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+  }, []);
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!userId || !name.trim()) return;
@@ -93,6 +109,8 @@ export default function CataloguePage() {
           .from("bf_footwear")
           .update({ photo_path: path })
           .eq("id", inserted.id);
+        // Profile the photo in the background — don't block the form.
+        profile(inserted.id);
       }
 
       setName("");
@@ -129,7 +147,8 @@ export default function CataloguePage() {
         Footwear catalogue
       </h1>
       <p className="mt-1 text-sm text-neutral-500">
-        Everything you own — the decision engine picks from this.
+        Everything you own — the Decider picks from this and tracks how worn each
+        pair is. Add socks here too, with photos.
       </p>
 
       <form
@@ -191,41 +210,201 @@ export default function CataloguePage() {
           <p className="text-sm text-neutral-400">No footwear yet.</p>
         )}
         {items.map((it) => (
-          <div
+          <ItemCard
             key={it.id}
-            className="flex gap-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
-          >
-            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-900">
-              {urls[it.id] && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={urls[it.id]}
-                  alt={it.name}
-                  className="h-full w-full object-cover"
-                />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{it.name}</p>
-              <p className="text-xs capitalize text-neutral-500">
-                {prettyCategory(it.category)}
-                {it.colour ? ` · ${it.colour}` : ""}
-              </p>
-              {it.notes && (
-                <p className="mt-1 truncate text-xs text-neutral-400">
-                  {it.notes}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => handleDelete(it)}
-              className="self-start text-xs text-neutral-400 hover:text-red-500"
-            >
-              Remove
-            </button>
-          </div>
+            it={it}
+            url={urls[it.id]}
+            onDelete={() => handleDelete(it)}
+            onReprofile={async () => {
+              await profile(it.id);
+              await load();
+            }}
+            onChanged={load}
+          />
         ))}
       </div>
     </main>
+  );
+}
+
+function ItemCard({
+  it,
+  url,
+  onDelete,
+  onReprofile,
+  onChanged,
+}: {
+  it: Item;
+  url?: string;
+  onDelete: () => void;
+  onReprofile: () => Promise<void>;
+  onChanged: () => Promise<void>;
+}) {
+  const supabase = createClient();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [hours, setHours] = useState("");
+  const [played, setPlayed] = useState(false);
+  const [dried, setDried] = useState(false);
+  const [sockless, setSockless] = useState(false);
+
+  const wornHours = it.worn_hours ?? 0;
+  const playedCount = it.played_count ?? 0;
+  const driedCount = it.dried_count ?? 0;
+  const socklessCount = it.sockless_count ?? 0;
+
+  const wearBits: string[] = [];
+  if (wornHours > 0) wearBits.push(`${Math.round(wornHours)}h since wash`);
+  if (playedCount > 0) wearBits.push(`played ${playedCount}×`);
+  if (driedCount > 0) wearBits.push(`dried ${driedCount}×`);
+  if (socklessCount > 0) wearBits.push(`bare ${socklessCount}×`);
+
+  async function logWear() {
+    setBusy(true);
+    const h = Number(hours) || 0;
+    await supabase
+      .from("bf_footwear")
+      .update({
+        worn_hours: wornHours + h,
+        played_count: playedCount + (played ? 1 : 0),
+        dried_count: driedCount + (dried ? 1 : 0),
+        sockless_count: socklessCount + (sockless ? 1 : 0),
+        last_worn_at: new Date().toISOString(),
+      })
+      .eq("id", it.id);
+    setHours("");
+    setPlayed(false);
+    setDried(false);
+    setSockless(false);
+    setOpen(false);
+    setBusy(false);
+    await onChanged();
+  }
+
+  async function markWashed() {
+    setBusy(true);
+    await supabase
+      .from("bf_footwear")
+      .update({
+        worn_hours: 0,
+        played_count: 0,
+        dried_count: 0,
+        last_washed_at: new Date().toISOString(),
+      })
+      .eq("id", it.id);
+    setBusy(false);
+    await onChanged();
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <div className="flex gap-4">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-900">
+          {url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={url} alt={it.name} className="h-full w-full object-cover" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{it.name}</p>
+          <p className="text-xs capitalize text-neutral-500">
+            {prettyCategory(it.category)}
+            {it.colour ? ` · ${it.colour}` : ""}
+          </p>
+          {it.dossier?.summary && (
+            <p className="mt-1 text-xs italic text-neutral-500">
+              {it.dossier.summary}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-neutral-400">
+            {wearBits.length ? wearBits.join(" · ") : "Fresh / clean"}
+          </p>
+        </div>
+        <button
+          onClick={onDelete}
+          className="self-start text-xs text-neutral-400 hover:text-red-500"
+        >
+          Remove
+        </button>
+      </div>
+
+      {/* Controls */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        >
+          {open ? "Close" : "Log wear"}
+        </button>
+        <button
+          onClick={markWashed}
+          disabled={busy}
+          className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+        >
+          Mark washed
+        </button>
+        {it.photo_path && (
+          <button
+            onClick={onReprofile}
+            className="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+          >
+            Re-profile
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+          <label className="block text-xs text-neutral-500">
+            Roughly how many hours did you wear them?
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              placeholder="e.g. 4"
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          </label>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-600 dark:text-neutral-300">
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={played}
+                onChange={(e) => setPlayed(e.target.checked)}
+                className="h-3.5 w-3.5 accent-neutral-900 dark:accent-white"
+              />
+              Played sport in them
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={dried}
+                onChange={(e) => setDried(e.target.checked)}
+                className="h-3.5 w-3.5 accent-neutral-900 dark:accent-white"
+              />
+              Got wet then dried out
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={sockless}
+                onChange={(e) => setSockless(e.target.checked)}
+                className="h-3.5 w-3.5 accent-neutral-900 dark:accent-white"
+              />
+              Worn with no socks
+            </label>
+          </div>
+          <button
+            onClick={logWear}
+            disabled={busy}
+            className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+          >
+            {busy ? "Saving…" : "Save wear"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

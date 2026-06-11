@@ -6,14 +6,18 @@ import {
   rollRarity,
   rarityBrief,
   composeInstructions,
+  footwearLine,
   PERSONAS,
   DEFAULT_PERSONA,
   isPersonaKey,
   type Rarity,
+  type Dossier,
+  type FootwearForRoll,
 } from "@/lib/decider";
 
 type Slot = { label: string; activity: string; location: string };
-type FootwearItem = { name: string; category: string };
+type FootwearItem = { id?: string; name: string; category: string };
+type Wearing = { names: string[]; sockless: boolean };
 
 type DiaryTask = { task: string; on: string };
 type Authored = {
@@ -23,6 +27,8 @@ type Authored = {
   prep_tasks: string[];
   diary_tasks: DiaryTask[];
   gallery_demand: string;
+  wear_refs: string[];
+  sockless: boolean;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -87,6 +93,8 @@ function parseAuthored(text: string, fallback: Authored): Authored {
         typeof json.gallery_demand === "string"
           ? json.gallery_demand.trim()
           : fallback.gallery_demand,
+      wear_refs: strings(json.wear_refs).slice(0, 4),
+      sockless: json.sockless === true,
     };
   } catch {
     return fallback;
@@ -135,6 +143,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     schedule?: Slot[];
     footwear?: FootwearItem[];
+    wearing?: Wearing;
     context?: string;
     smell?: number;
     date?: string;
@@ -144,6 +153,12 @@ export async function POST(request: Request) {
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
+  const wearing: Wearing = {
+    names: Array.isArray(body.wearing?.names)
+      ? body.wearing.names.filter((n): n is string => typeof n === "string")
+      : [],
+    sockless: body.wearing?.sockless === true,
+  };
   const context = (body.context ?? "").trim().slice(0, 2000);
   const weatherLocation = (body.weatherLocation ?? "").trim();
   const smell =
@@ -262,6 +277,31 @@ export async function POST(request: Request) {
     });
   }
 
+  // Enrich the on-hand footwear with each item's dossier + live wear state from
+  // the catalogue, and give each a short ref (F1, F2…) the Decider can point at.
+  const { data: catalogueRows } = await supabase.from("bf_footwear").select("*");
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const row of (catalogueRows ?? []) as Array<Record<string, unknown>>) {
+    if (typeof row.id === "string") byId.set(row.id, row);
+  }
+  const refMap = new Map<string, { id: string | null; name: string }>();
+  const footwearLines: string[] = footwear.map((f, i) => {
+    const ref = `F${i + 1}`;
+    refMap.set(ref, { id: f.id ?? null, name: f.name });
+    const row = f.id ? byId.get(f.id) : undefined;
+    const item: FootwearForRoll = {
+      id: f.id ?? ref,
+      name: f.name,
+      category: f.category,
+      dossier: (row?.dossier as Dossier | null) ?? null,
+      worn_hours: Number(row?.worn_hours) || 0,
+      played_count: Number(row?.played_count) || 0,
+      dried_count: Number(row?.dried_count) || 0,
+      sockless_count: Number(row?.sockless_count) || 0,
+    };
+    return footwearLine(ref, item);
+  });
+
   const prompt = `${instructions}
 
 Persona — write ALL player-facing text in this voice: ${PERSONAS[persona].voice}
@@ -271,9 +311,15 @@ ${schedule
   .map((s, i) => `${i + 1}. ${s.label} — ${s.activity} @ ${s.location}`)
   .join("\n")}
 
-Footwear on hand right now: ${footwear
-    .map((f) => `${f.name} (${f.category})`)
-    .join(", ")}
+Footwear on hand right now (pick from these — use the wear state + dossier to choose well):
+${footwearLines.join("\n")}
+${
+  wearing.names.length
+    ? `Right now he's already wearing: ${wearing.names.join(", ")}${
+        wearing.sockless ? " (no socks)" : ""
+      }. Factor this in — tell him to keep them, change, or escalate.`
+    : ""
+}
 ${weather ? `Current weather near them: ${weather}` : ""}
 ${
   context
@@ -330,7 +376,9 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     isRoaster
       ? `"OPTIONAL and SEPARATE from the dare — only occasionally, when you fancy it. One short, exacting demand for a single well-lit close-up of a specific part of Mike's bare foot, framed how you want it, purely to add to your file for future roasts (e.g. 'a tight, well-lit shot of the underside of your right big toe'). Empty string if you don't want one this round."`
       : `""`
-  }
+  },
+  "wear_refs": ["the ref label(s) like F1, F2 of the footwear AND socks you're telling him to wear this session — [] if none / not a wear verdict"],
+  "sockless": "true if you're telling him to wear a shoe with NO socks, otherwise false"
 }
 (diary_tasks: zero or more tasks to schedule for a SPECIFIC future date — use [] if none; only diarise when it genuinely makes sense. gallery_demand: a standalone close-up request for the Roaster's file, NOT proof for the dare — leave it as "" unless you genuinely want a shot on record.)`;
 
@@ -341,6 +389,8 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     prep_tasks: [],
     diary_tasks: [],
     gallery_demand: "",
+    wear_refs: [],
+    sockless: false,
   };
   let authored = fallback;
   try {
@@ -366,23 +416,51 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
 
   const proofRequiredJson = brief.proofRequired ? authored.proof_elements : null;
 
-  const { data: inserted } = await supabase
-    .from("bf_challenges")
-    .insert({
-      user_id: user.id,
-      schedule_json: schedule,
-      available_footwear_json: footwear,
-      weights_json: weights,
-      verdict_type: brief.verdictType,
-      rarity,
-      instruction: authored.instruction,
-      flavor: authored.flavor,
-      proof_required_json: proofRequiredJson,
-      status: sealedUntil ? "sealed" : "issued",
-      sealed_until: sealedUntil,
-    })
-    .select("id")
-    .single();
+  // Resolve the Decider's wear picks (F1, F2…) back to real catalogue items so
+  // "mark done" can log wear against them. Only items with a real id count.
+  const wearItems = authored.wear_refs
+    .map((r) => refMap.get(r.trim().toUpperCase()))
+    .filter((x): x is { id: string | null; name: string } => !!x && !!x.id)
+    .map((x) => ({ id: x.id as string, name: x.name }));
+  const wearJson =
+    wearItems.length || authored.sockless
+      ? { items: wearItems, sockless: authored.sockless }
+      : null;
+
+  const baseRow = {
+    user_id: user.id,
+    schedule_json: schedule,
+    available_footwear_json: footwear,
+    weights_json: weights,
+    verdict_type: brief.verdictType,
+    rarity,
+    instruction: authored.instruction,
+    flavor: authored.flavor,
+    proof_required_json: proofRequiredJson,
+    status: sealedUntil ? "sealed" : "issued",
+    sealed_until: sealedUntil,
+  };
+
+  // Try to store the wear picks; if the wear_json column isn't there yet
+  // (migration not run), fall back so the roll still works.
+  let inserted: { id: string } | null = null;
+  {
+    const { data, error } = await supabase
+      .from("bf_challenges")
+      .insert({ ...baseRow, wear_json: wearJson })
+      .select("id")
+      .single();
+    if (error) {
+      const { data: data2 } = await supabase
+        .from("bf_challenges")
+        .insert(baseRow)
+        .select("id")
+        .single();
+      inserted = data2;
+    } else {
+      inserted = data;
+    }
+  }
 
   // Make sure a streak row exists for later phases (don't overwrite counts).
   await supabase

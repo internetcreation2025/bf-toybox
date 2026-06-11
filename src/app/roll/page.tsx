@@ -8,7 +8,7 @@ import { type Rarity } from "@/lib/decider";
 import { VerdictCard } from "@/components/VerdictCard";
 
 type Slot = { label: string; activity: string; location: string };
-type FootwearItem = { name: string; category: string };
+type FootwearItem = { id?: string; name: string; category: string };
 
 type RollResult = {
   id: string;
@@ -81,10 +81,14 @@ export default function RollPage() {
   const loadCatalogue = useCallback(async () => {
     const { data } = await supabase
       .from("bf_footwear")
-      .select("name, category")
+      .select("id, name, category")
       .order("created_at", { ascending: false });
     setCatalogue((data ?? []) as FootwearItem[]);
   }, [supabase]);
+
+  // ── what he's already wearing right now (optional) ──
+  const [wearingSel, setWearingSel] = useState<Set<string>>(new Set());
+  const [wearingSockless, setWearingSockless] = useState(false);
 
   useEffect(() => {
     loadCatalogue();
@@ -126,6 +130,10 @@ export default function RollPage() {
         body: JSON.stringify({
           schedule: filledSlots,
           footwear: onHand,
+          wearing: {
+            names: [...wearingSel],
+            sockless: wearingSockless,
+          },
           context: context.trim(),
           smell: smellOn ? smell : undefined,
           date,
@@ -308,6 +316,51 @@ export default function RollPage() {
             placeholder="Other items, comma-separated (e.g. bare feet, white socks)"
             className="mt-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
+
+          {/* What he's wearing right now (optional) */}
+          {catalogue.length > 0 && (
+            <div className="mt-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+              <p className="text-sm font-medium">Wearing right now? (optional)</p>
+              <p className="mt-0.5 text-xs text-neutral-400">
+                So the Decider knows what&apos;s already on — it might tell you to
+                keep them, change, or escalate.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {catalogue.map((c) => {
+                  const on = wearingSel.has(c.name);
+                  return (
+                    <button
+                      key={`wearing-${c.name}`}
+                      onClick={() =>
+                        setWearingSel((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(c.name)) next.delete(c.name);
+                          else next.add(c.name);
+                          return next;
+                        })
+                      }
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        on
+                          ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                          : "border-neutral-300 dark:border-neutral-700"
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                <input
+                  type="checkbox"
+                  checked={wearingSockless}
+                  onChange={(e) => setWearingSockless(e.target.checked)}
+                  className="h-4 w-4 accent-neutral-900 dark:accent-white"
+                />
+                No socks right now
+              </label>
+            </div>
+          )}
 
           {/* Free-text context for the Decider */}
           <textarea
