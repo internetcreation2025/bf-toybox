@@ -109,18 +109,19 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         </>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/* Primary action */}
+      <div className="mt-4">
         {sealed ? (
           <Link
             href={`/envelope/${challenge.id}`}
-            className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
+            className="inline-block rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
           >
             Open envelope
           </Link>
         ) : proofRequired ? (
           <Link
             href={`/proof/${challenge.id}`}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            className="inline-block rounded-lg px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
             style={{ backgroundColor: "#a855f7" }}
           >
             Submit proof
@@ -134,88 +135,77 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
             {busy ? "…" : "Mark as done"}
           </button>
         )}
-        {canCancel && (
+      </div>
+
+      {/* Secondary actions — tucked away as quiet links */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        {!sealed && (
+          <button
+            onClick={() => setShowAppeal((v) => !v)}
+            className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+          >
+            {showAppeal ? "Close" : "Talk to the Decider"}
+          </button>
+        )}
+        {canCancel ? (
           <button
             onClick={() => resolve("cancelled")}
             disabled={busy}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:hover:text-neutral-100"
+            className="text-neutral-400 hover:text-red-600 disabled:opacity-50"
           >
             Cancel
           </button>
+        ) : (
+          <span className="text-neutral-400">
+            Needs proof — stays until you submit.
+          </span>
         )}
       </div>
 
-      {!canCancel && (
-        <p className="mt-3 text-xs text-neutral-400">
-          This one needs proof — it stays here until you submit it.
-        </p>
-      )}
-      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-
-      {/* Negotiate with the Decider (not for sealed envelopes) */}
-      {!sealed && (
-        <div className="mt-4 border-t border-neutral-200 pt-3 dark:border-neutral-800">
-          {!showAppeal ? (
-            <button
-              onClick={() => setShowAppeal(true)}
-              className="text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
-            >
-              Talk to the Decider →
-            </button>
-          ) : (
-            <div>
-              <textarea
-                value={plea}
-                onChange={(e) => setPlea(e.target.value)}
-                rows={2}
-                placeholder="Reason with the Decider… (it may soften this, or make it worse)"
-                className="w-full rounded-lg border border-neutral-300 p-2.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={sendAppeal}
-                  disabled={appealing || !plea.trim()}
-                  className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
-                >
-                  {appealing ? "Putting your case…" : "Send"}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowAppeal(false);
-                    setPlea("");
-                  }}
-                  className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-500 dark:border-neutral-700"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          )}
-
-          {ruling && (
-            <div
-              className={`mt-3 rounded-xl p-3 text-sm ${
-                ruling.outcome === "mercy"
-                  ? "bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-300"
-                  : ruling.outcome === "harsher"
-                  ? "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300"
-                  : "bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
-              }`}
-            >
-              {ruling.outcome !== "error" && (
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide">
-                  {ruling.outcome === "mercy"
-                    ? "Mercy"
-                    : ruling.outcome === "harsher"
-                    ? "Harsher"
-                    : "Upheld"}
-                </p>
-              )}
-              <p className="italic">{ruling.reply}</p>
-            </div>
-          )}
+      {/* Negotiate panel (inline, only when opened) */}
+      {!sealed && showAppeal && (
+        <div className="mt-3">
+          <textarea
+            value={plea}
+            onChange={(e) => setPlea(e.target.value)}
+            rows={2}
+            placeholder="Reason with the Decider… (it may soften this, or make it worse)"
+            className="w-full rounded-lg border border-neutral-300 p-2.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+          <button
+            onClick={sendAppeal}
+            disabled={appealing || !plea.trim()}
+            className="mt-2 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+          >
+            {appealing ? "Putting your case…" : "Send"}
+          </button>
         </div>
       )}
+
+      {ruling && (
+        <div
+          className={`mt-3 rounded-xl p-3 text-sm ${
+            ruling.outcome === "mercy"
+              ? "bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-300"
+              : ruling.outcome === "harsher"
+              ? "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300"
+              : "bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
+          }`}
+        >
+          {ruling.outcome !== "error" && (
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide">
+              {ruling.outcome === "mercy"
+                ? "Mercy"
+                : ruling.outcome === "harsher"
+                ? "Harsher"
+                : "Upheld"}
+            </p>
+          )}
+          <p className="italic">{ruling.reply}</p>
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
     </div>
   );
 }
