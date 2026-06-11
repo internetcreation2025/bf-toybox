@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { resizeImage } from "@/lib/image";
 import {
   FOOTWEAR_CATEGORIES,
   prettyCategory,
@@ -82,11 +83,11 @@ export default function CataloguePage() {
       if (insErr || !inserted) throw insErr ?? new Error("insert failed");
 
       if (photo) {
-        const ext = (photo.name.split(".").pop() || "jpg").toLowerCase();
-        const path = `${userId}/footwear/${inserted.id}.${ext}`;
+        const blob = await resizeImage(photo);
+        const path = `${userId}/footwear/${inserted.id}.jpg`;
         const { error: upErr } = await supabase.storage
           .from("bf-feet")
-          .upload(path, photo, { upsert: true, contentType: photo.type });
+          .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
         if (upErr) throw upErr;
         await supabase
           .from("bf_footwear")

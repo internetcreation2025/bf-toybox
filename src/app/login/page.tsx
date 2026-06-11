@@ -5,30 +5,27 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
-    "idle"
-  );
-  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
-    setMessage("");
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // Never create a new account from the login form — only existing users
+        // (i.e. the owner) can receive a link.
+        shouldCreateUser: false,
       },
     });
 
-    if (error) {
-      setStatus("error");
-      setMessage(error.message);
-    } else {
-      setStatus("sent");
-    }
+    // Always show the same confirmation, regardless of whether the email exists,
+    // so the form can't be used to discover which accounts are registered.
+    if (error) console.error("login otp error:", error.message);
+    setStatus("sent");
   }
 
   return (
@@ -45,9 +42,8 @@ export default function LoginPage() {
           <div className="rounded-xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
             <p className="font-medium">Check your email</p>
             <p className="mt-2 text-sm text-neutral-500">
-              We sent a one-time sign-in link to{" "}
-              <span className="font-mono">{email}</span>. Open it on this device
-              to log in.
+              If that address is registered, a one-time sign-in link is on its
+              way. Open it on this device to log in.
             </p>
           </div>
         ) : (
@@ -68,11 +64,9 @@ export default function LoginPage() {
             >
               {status === "sending" ? "Sending…" : "Send magic link"}
             </button>
-            {status === "error" && (
-              <p className="text-center text-sm text-red-500">{message}</p>
-            )}
             <p className="text-center text-xs text-neutral-400">
-              Access is restricted to the owner&apos;s email only.
+              Access is restricted to the owner&apos;s email, with an
+              authenticator code required.
             </p>
           </form>
         )}

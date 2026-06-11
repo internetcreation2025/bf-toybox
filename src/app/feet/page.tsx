@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { resizeImage } from "@/lib/image";
 import { FOOT_ANGLES } from "@/lib/feet";
 
 type RefRow = {
@@ -50,12 +51,12 @@ export default function FeetPage() {
     setBusy(angle);
     setError("");
     try {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-      const path = `${userId}/feet/${angle}.${ext}`;
+      const blob = await resizeImage(file);
+      const path = `${userId}/feet/${angle}.jpg`;
 
       const { error: upErr } = await supabase.storage
         .from("bf-feet")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
       if (upErr) throw upErr;
 
       const { error: rowErr } = await supabase.from("bf_foot_refs").upsert(

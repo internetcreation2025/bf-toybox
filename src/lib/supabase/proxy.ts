@@ -1,15 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Paths reachable without being logged in.
-const PUBLIC_PATHS = ["/login", "/auth"];
+// Paths in the auth funnel — reachable before being fully authenticated.
+const FUNNEL_PATHS = ["/login", "/auth"];
 
-function isPublic(path: string) {
-  return PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+function matches(path: string, list: string[]) {
+  return list.some((p) => path === p || path.startsWith(p + "/"));
 }
 
-// Refreshes the Supabase session on every request and gates access:
-// only a logged-in user whose email matches ALLOWED_EMAIL may reach private pages.
+// Refreshes the Supabase session and gates access in two layers:
+//  1) must be logged in AND the email must match ALLOWED_EMAIL
+//  2) must have completed the authenticator-code step (assurance level aal2)
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -45,10 +46,32 @@ export async function updateSession(request: NextRequest) {
     (!allowedEmail || user.email?.toLowerCase() === allowedEmail);
 
   const path = request.nextUrl.pathname;
+  const onFunnel = matches(path, FUNNEL_PATHS);
+  const onMfa = path === "/mfa" || path.startsWith("/mfa/");
 
-  if (!isAllowed && !isPublic(path)) {
+  // Layer 1: logged in + allowlisted.
+  if (!isAllowed) {
+    if (onFunnel) return supabaseResponse;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    return NextResponse.redirect(url);
+  }
+
+  // Layer 2: authenticator code (aal2). Until the session reaches aal2, the only
+  // places the user may go are the MFA page (to enrol or enter their code) and
+  // the auth funnel (e.g. signout).
+  let currentLevel: string | null = null;
+  try {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    currentLevel = data?.currentLevel ?? null;
+  } catch {
+    currentLevel = null;
+  }
+
+  if (currentLevel !== "aal2") {
+    if (onMfa || onFunnel) return supabaseResponse;
+    const url = request.nextUrl.clone();
+    url.pathname = "/mfa";
     return NextResponse.redirect(url);
   }
 
