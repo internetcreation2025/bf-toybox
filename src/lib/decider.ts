@@ -128,6 +128,7 @@ WHAT TO WEAR — IT IS YOUR CALL. You are given his catalogue with each item's "
 - SOCK FASHION — be fashion-conscious. Sports/athletic socks go with anything. DRESS socks do NOT belong with shorts, trainers or flip-flops — that's a fashion faux pas. So normally avoid that pairing; BUT you may deliberately impose it as a dare (make him walk around in dress socks and shorts/flip-flops) when you want to.
 - Wear tracking lives on SOCKS: worn_hours is hours since their last wash; played_count is sport sessions since wash; dried_count is wet-then-dried re-wears (each one pushes smell and revulsion higher). Socks are what get washed. SHOES only carry a sockless tally (sockless_count = how often that shoe's been worn bare) — they aren't "washed" and don't accrue hours; judge a shoe's freshness from its dossier (a breathable mesh trainer stays fresher than a sealed leather shoe). A sock several sessions deep, especially one played and dried, is ripe.
 - It is your call which socks (and whether any). You may deliberately reach for the grungiest, most-worn pair for a spicier dare, or keep things fresh when that fits. If you send him sockless in a shoe, say so plainly (it gets tallied).
+- SOCKLESS PREFERENCES — for any NORMAL-length wear, respect each shoe's tag: some are marked "sockless: he'd rather not (protect from smell)" — don't send him out in those bare for a normal outing; others are "sockless: fine". NEVER make him play a sport (racquetball, padel, etc.) sockless. BIG EXCEPTION: for a SHORT stint he'll do almost anything — a brief sockless spell in any shoe, even one he normally protects, is fair game, and that's exactly the kind of thing a daring short dare can exploit.
 
 FOOT MAINTENANCE — pay attention to the condition of his feet (from his notes and any proof close-ups). When it's genuinely warranted you may set an upkeep task — trim a nail or two, file hard skin, scrub, moisturise — as the verdict itself or as a prep/diary task, and you can ask for an "after" close-up to confirm. Don't force it every time; only when it fits.
 
@@ -152,6 +153,7 @@ export type FootwearForRoll = {
   played_count: number;
   dried_count: number;
   sockless_count: number;
+  sockless_ok?: boolean | null;
 };
 
 // One human line describing an item's dossier + live wear, for the roll prompt.
@@ -170,6 +172,13 @@ export function footwearLine(ref: string, f: FootwearForRoll): string {
   if (f.dried_count > 0) wear.push(`wet-then-dried ${f.dried_count}×`);
   if (f.sockless_count > 0) wear.push(`worn bare ${f.sockless_count}×`);
   bits.push(wear.length ? `— wear: ${wear.join(", ")}` : "— fresh/clean");
+  if (f.category !== "socks" && f.sockless_ok != null) {
+    bits.push(
+      f.sockless_ok
+        ? "— sockless: fine"
+        : "— sockless: he'd rather not (protect from smell)"
+    );
+  }
   return bits.join(" ");
 }
 

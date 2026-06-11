@@ -24,7 +24,17 @@ type Item = {
   dried_count: number | null;
   sockless_count: number | null;
   last_washed_at: string | null;
+  sockless_ok: boolean | null;
 };
+
+// Maps the 3-way sockless preference UI value to a nullable boolean column.
+type SocklessPref = "unset" | "yes" | "no";
+function prefToBool(p: SocklessPref): boolean | null {
+  return p === "yes" ? true : p === "no" ? false : null;
+}
+function boolToPref(b: boolean | null | undefined): SocklessPref {
+  return b === true ? "yes" : b === false ? "no" : "unset";
+}
 
 export default function CataloguePage() {
   const supabase = createClient();
@@ -39,6 +49,7 @@ export default function CataloguePage() {
   const [colour, setColour] = useState("");
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [sockless, setSockless] = useState<SocklessPref>("unset");
 
   // Filtering + full-size viewing.
   const [filter, setFilter] = useState<string>("all");
@@ -117,11 +128,21 @@ export default function CataloguePage() {
         profile(inserted.id);
       }
 
+      // Sockless preference (shoes only). Separate update so a pre-migration
+      // schema (no sockless_ok column) still lets the item save.
+      if (category !== "socks" && sockless !== "unset") {
+        await supabase
+          .from("bf_footwear")
+          .update({ sockless_ok: prefToBool(sockless) })
+          .eq("id", inserted.id);
+      }
+
       setName("");
       setColour("");
       setNotes("");
       setPhoto(null);
       setCategory("trainers");
+      setSockless("unset");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
@@ -191,6 +212,20 @@ export default function CataloguePage() {
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
         </div>
+        {category !== "socks" && (
+          <label className="block text-xs text-neutral-500">
+            Happy to wear these without socks?
+            <select
+              value={sockless}
+              onChange={(e) => setSockless(e.target.value as SocklessPref)}
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 sm:w-72"
+            >
+              <option value="unset">No preference</option>
+              <option value="yes">Fine without socks</option>
+              <option value="no">Keep socks (don&apos;t risk the smell)</option>
+            </select>
+          </label>
+        )}
         <div className="flex items-center justify-between gap-3">
           <input
             type="file"
@@ -312,6 +347,9 @@ function ItemCard({
   const [eColour, setEColour] = useState(it.colour ?? "");
   const [eNotes, setENotes] = useState(it.notes ?? "");
   const [ePhoto, setEPhoto] = useState<File | null>(null);
+  const [eSockless, setESockless] = useState<SocklessPref>(
+    boolToPref(it.sockless_ok)
+  );
   const [editErr, setEditErr] = useState("");
 
   function startEdit() {
@@ -320,6 +358,7 @@ function ItemCard({
     setEColour(it.colour ?? "");
     setENotes(it.notes ?? "");
     setEPhoto(null);
+    setESockless(boolToPref(it.sockless_ok));
     setEditErr("");
     setEditing(true);
   }
@@ -341,6 +380,15 @@ function ItemCard({
           notes: eNotes.trim() || null,
         })
         .eq("id", it.id);
+
+      // Sockless preference (shoes only) — separate update so a pre-migration
+      // schema still lets the rest of the edit save.
+      if (eCategory !== "socks") {
+        await supabase
+          .from("bf_footwear")
+          .update({ sockless_ok: prefToBool(eSockless) })
+          .eq("id", it.id);
+      }
 
       // New photo → upload, point the row at it, and re-profile.
       if (ePhoto && userId) {
@@ -554,6 +602,20 @@ function ItemCard({
             placeholder="Notes (optional)"
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
+          {eCategory !== "socks" && (
+            <label className="block text-xs text-neutral-500">
+              Happy to wear these without socks?
+              <select
+                value={eSockless}
+                onChange={(e) => setESockless(e.target.value as SocklessPref)}
+                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              >
+                <option value="unset">No preference</option>
+                <option value="yes">Fine without socks</option>
+                <option value="no">Keep socks (don&apos;t risk the smell)</option>
+              </select>
+            </label>
+          )}
           <label className="block text-xs text-neutral-500">
             Replace photo (optional — re-profiles it)
             <input
