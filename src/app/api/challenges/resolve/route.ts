@@ -18,7 +18,12 @@ export async function POST(request: Request) {
   const { challengeId, outcome, wearLog } = (await request.json()) as {
     challengeId?: string;
     outcome?: "completed" | "cancelled";
-    wearLog?: { hours?: number; played?: boolean; dried?: boolean };
+    wearLog?: {
+      hours?: number;
+      played?: boolean;
+      dried?: boolean;
+      sockIds?: string[];
+    };
   };
   if (!challengeId || (outcome !== "completed" && outcome !== "cancelled")) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
@@ -95,33 +100,61 @@ export async function POST(request: Request) {
       | { items?: Array<{ id?: string; category?: string }>; sockless?: boolean }
       | null
       | undefined;
-    const items = Array.isArray(wj?.items) ? wj!.items : [];
+    const wjItems = Array.isArray(wj?.items) ? wj!.items : [];
     const hours = Math.max(0, Number(wearLog?.hours) || 0);
     const playedInc = wearLog?.played ? 1 : 0;
     const driedInc = wearLog?.dried ? 1 : 0;
-    const socklessInc = wj?.sockless ? 1 : 0;
-    for (const it of items) {
-      if (!it?.id) continue;
+
+    // Which socks to log against: whatever the player picked on the task,
+    // falling back to the socks the Decider assigned.
+    const picked = Array.isArray(wearLog?.sockIds)
+      ? wearLog!.sockIds.filter((x): x is string => typeof x === "string")
+      : null;
+    const sockIds =
+      picked && picked.length
+        ? picked
+        : wjItems
+            .filter((i) => i.category === "socks" && i.id)
+            .map((i) => i.id as string);
+
+    for (const id of sockIds) {
       const { data: row } = await supabase
         .from("bf_footwear")
-        .select("worn_hours, played_count, dried_count, sockless_count, category")
-        .eq("id", it.id)
+        .select("worn_hours, played_count, dried_count")
+        .eq("id", id)
         .maybeSingle();
       if (!row) continue;
-      const isSock = (it.category ?? row.category) === "socks";
-      // Socks accrue hours + play/dry; shoes only tally being worn bare.
-      const patch = isSock
-        ? {
-            worn_hours: (Number(row.worn_hours) || 0) + hours,
-            played_count: (Number(row.played_count) || 0) + playedInc,
-            dried_count: (Number(row.dried_count) || 0) + driedInc,
+      await supabase
+        .from("bf_footwear")
+        .update({
+          worn_hours: (Number(row.worn_hours) || 0) + hours,
+          played_count: (Number(row.played_count) || 0) + playedInc,
+          dried_count: (Number(row.dried_count) || 0) + driedInc,
+          last_worn_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+    }
+
+    // Shoe worn bare: bump the assigned shoe's sockless tally.
+    if (wj?.sockless) {
+      const shoeIds = wjItems
+        .filter((i) => i.category !== "socks" && i.id)
+        .map((i) => i.id as string);
+      for (const id of shoeIds) {
+        const { data: row } = await supabase
+          .from("bf_footwear")
+          .select("sockless_count")
+          .eq("id", id)
+          .maybeSingle();
+        if (!row) continue;
+        await supabase
+          .from("bf_footwear")
+          .update({
+            sockless_count: (Number(row.sockless_count) || 0) + 1,
             last_worn_at: new Date().toISOString(),
-          }
-        : {
-            sockless_count: (Number(row.sockless_count) || 0) + socklessInc,
-            last_worn_at: new Date().toISOString(),
-          };
-      await supabase.from("bf_footwear").update(patch).eq("id", it.id);
+          })
+          .eq("id", id);
+      }
     }
   }
 

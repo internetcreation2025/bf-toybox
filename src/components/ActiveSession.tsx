@@ -32,8 +32,10 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const [appealing, setAppealing] = useState(false);
   const [ruling, setRuling] = useState<Ruling | null>(null);
 
-  // Wear-log form (shown only when the verdict assigned specific footwear).
-  const [wearItems, setWearItems] = useState<WearItem[] | null>(null);
+  // Wear-log panel — pick which socks you wore + log the hours, from the task.
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [catalogSocks, setCatalogSocks] = useState<WearItem[]>([]);
+  const [selectedSocks, setSelectedSocks] = useState<Set<string>>(new Set());
   const [hours, setHours] = useState("");
   const [played, setPlayed] = useState(false);
   const [dried, setDried] = useState(false);
@@ -44,36 +46,52 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   // A proof obligation can't be quietly cancelled — it stays until you submit.
   const canCancel = sealed || !proofRequired;
 
-  // Clicking "Mark as done" first checks whether this verdict named footwear to
-  // wear. If so, ask for rough hours before logging; otherwise just resolve.
+  // "Mark as done": for a wear task (or one that assigned socks), open a panel
+  // to log sock wear right here — pick the socks, pre-ticked with whatever the
+  // Decider told you to wear. Pure dares with no socks just resolve.
   async function startDone() {
     setBusy(true);
     setError("");
-    const { data } = await supabase
-      .from("bf_challenges")
-      .select("wear_json")
-      .eq("id", challenge.id)
-      .maybeSingle();
-    const wj = (data?.wear_json ?? null) as
-      | { items?: WearItem[] }
-      | null;
-    const items = Array.isArray(wj?.items)
-      ? wj!.items.filter((i): i is WearItem => !!i?.id)
+    const [{ data: chData }, { data: sockData }] = await Promise.all([
+      supabase
+        .from("bf_challenges")
+        .select("wear_json")
+        .eq("id", challenge.id)
+        .maybeSingle(),
+      supabase
+        .from("bf_footwear")
+        .select("id, name")
+        .eq("category", "socks")
+        .order("created_at", { ascending: false }),
+    ]);
+    const wj = (chData?.wear_json ?? null) as { items?: WearItem[] } | null;
+    const assignedSockIds = Array.isArray(wj?.items)
+      ? wj!.items
+          .filter((i) => i?.id && i.category === "socks")
+          .map((i) => i.id)
       : [];
-    // Only socks carry hours — show the form just for them. A sockless-shoe
-    // verdict (no socks) resolves straight away; the server tallies the shoe.
-    const socks = items.filter((i) => i.category === "socks");
-    setBusy(false);
-    if (socks.length > 0) {
-      setWearItems(socks);
-    } else {
+    const socks = (sockData ?? []) as WearItem[];
+    const shouldLog =
+      challenge.verdict_type === "wear" || assignedSockIds.length > 0;
+
+    if (!shouldLog || socks.length === 0) {
       resolve("completed");
+      return;
     }
+    setCatalogSocks(socks);
+    setSelectedSocks(new Set(assignedSockIds));
+    setBusy(false);
+    setPanelOpen(true);
   }
 
   async function resolve(
     outcome: "completed" | "cancelled",
-    wearLog?: { hours: number; played: boolean; dried: boolean }
+    wearLog?: {
+      hours: number;
+      played: boolean;
+      dried: boolean;
+      sockIds: string[];
+    }
   ) {
     setBusy(true);
     setError("");
@@ -166,7 +184,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
           >
             Submit proof
           </Link>
-        ) : wearItems ? null : (
+        ) : panelOpen ? null : (
           <button
             onClick={startDone}
             disabled={busy}
@@ -177,14 +195,39 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         )}
       </div>
 
-      {/* Wear-log: how long were the assigned footwear worn? */}
-      {wearItems && (
+      {/* Log sock wear straight from the task — no catalogue trip. */}
+      {panelOpen && (
         <div className="mt-3 space-y-2 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-          <p className="text-xs text-neutral-500">
-            Logging wear for: {wearItems.map((i) => i.name).join(", ")}
+          <p className="text-xs font-medium text-neutral-500">
+            Which socks did you wear?
           </p>
+          <div className="flex flex-wrap gap-2">
+            {catalogSocks.map((s) => {
+              const on = selectedSocks.has(s.id);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() =>
+                    setSelectedSocks((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(s.id)) next.delete(s.id);
+                      else next.add(s.id);
+                      return next;
+                    })
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                    on
+                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                      : "border-neutral-300 dark:border-neutral-700"
+                  }`}
+                >
+                  {s.name}
+                </button>
+              );
+            })}
+          </div>
           <label className="block text-xs text-neutral-500">
-            Roughly how many hours did you wear them?
+            Roughly how many hours?
             <input
               type="number"
               min={0}
@@ -222,6 +265,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                   hours: Number(hours) || 0,
                   played,
                   dried,
+                  sockIds: [...selectedSocks],
                 })
               }
               disabled={busy}
@@ -230,11 +274,18 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
               {busy ? "Saving…" : "Log & mark done"}
             </button>
             <button
-              onClick={() => resolve("completed", { hours: 0, played: false, dried: false })}
+              onClick={() =>
+                resolve("completed", {
+                  hours: 0,
+                  played: false,
+                  dried: false,
+                  sockIds: [],
+                })
+              }
               disabled={busy}
               className="rounded-lg px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
             >
-              Skip
+              Done, skip logging
             </button>
           </div>
         </div>
