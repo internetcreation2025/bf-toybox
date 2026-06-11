@@ -15,12 +15,26 @@ import {
 type Slot = { label: string; activity: string; location: string };
 type FootwearItem = { name: string; category: string };
 
+type DiaryTask = { task: string; on: string };
 type Authored = {
   instruction: string;
   flavor: string;
   proof_elements: string[];
   prep_tasks: string[];
+  diary_tasks: DiaryTask[];
 };
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+// Format an ISO date without going through Date() (avoids timezone off-by-one).
+function humanDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTHS[(m || 1) - 1]} ${y}`;
+}
 
 const SPORT_RE =
   /\b(padel|paddle|racket\s?ball|racquet\s?ball|squash|tennis|badminton)\b/i;
@@ -56,6 +70,18 @@ function parseAuthored(text: string, fallback: Authored): Authored {
         ? json.proof_elements.filter((x): x is string => typeof x === "string")
         : fallback.proof_elements,
       prep_tasks: strings(json.prep_tasks).slice(0, 3),
+      diary_tasks: Array.isArray(json.diary_tasks)
+        ? (json.diary_tasks as Array<Record<string, unknown>>)
+            .filter(
+              (d) =>
+                typeof d?.task === "string" &&
+                d.task.trim() &&
+                typeof d?.on === "string" &&
+                ISO_DATE.test(d.on)
+            )
+            .map((d) => ({ task: (d.task as string).trim(), on: d.on as string }))
+            .slice(0, 3)
+        : fallback.diary_tasks,
     };
   } catch {
     return fallback;
@@ -106,12 +132,15 @@ export async function POST(request: Request) {
     footwear?: FootwearItem[];
     context?: string;
     smell?: number;
+    date?: string;
+    weatherLocation?: string;
     doubleOrNothing?: boolean;
     sealMinutes?: number;
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
   const context = (body.context ?? "").trim().slice(0, 2000);
+  const weatherLocation = (body.weatherLocation ?? "").trim();
   const smell =
     typeof body.smell === "number" && body.smell >= 0 && body.smell <= 10
       ? Math.round(body.smell)
@@ -164,6 +193,7 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: true });
   const prepItems = (openMemory ?? []).filter((m) => m.kind === "prep");
   const gameItems = (openMemory ?? []).filter((m) => m.kind === "game");
+  const diaryItems = (openMemory ?? []).filter((m) => m.kind === "diary");
 
   const { data: streakRow } = await supabase
     .from("bf_streak")
@@ -184,13 +214,16 @@ export async function POST(request: Request) {
   const forceSpicy = !!body.doubleOrNothing || losingStreak >= 2;
   const rarity = rollRarity(weights, forceSpicy);
   const brief = rarityBrief(rarity);
-  const weather = await getWeather(schedule[0]?.location);
-  const today = new Date().toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const weather = await getWeather(weatherLocation || schedule[0]?.location);
+
+  // Operative date for this roll — the owner can plan for a future day; defaults
+  // to today. Used for the schedule context and the proof "date on foot".
+  const actualIso = new Date().toISOString().slice(0, 10);
+  const todayIso =
+    typeof body.date === "string" && ISO_DATE.test(body.date)
+      ? body.date
+      : actualIso;
+  const today = humanDate(todayIso);
 
   // If a competitive game is on the schedule, set a follow-up so a later
   // session asks how it went (dedup on sport + date).
@@ -230,9 +263,16 @@ ${
         .join("; ")}`
     : ""
 }
+${
+  diaryItems.length
+    ? `Tasks you've already diarised for future dates — don't duplicate these; bring one to life when its day is here or near: ${diaryItems
+        .map((d) => `${d.game_on}: ${d.title}`)
+        .join("; ")}`
+    : ""
+}
 ${smell !== null ? `Current footwear/sock smell index the owner reports: ${smell}/10.` : ""}
 ${losingNote}
-Today's date: ${today}
+Today's date: ${today} (ISO ${todayIso})
 
 Rolled rarity: ${rarity.toUpperCase()}. Tier directive: ${brief.guide}
 Verdict type: ${brief.verdictType}. Photo proof required: ${brief.proofRequired}
@@ -246,14 +286,17 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
       ? `["2 to 5 specific things that must appear in the proof photo — include the bare feet, an object proving the location/context, and today's date (${today}) written on the foot in pen; state the expected foot condition (clean, or slightly dirty/sweaty); and if the dare hinges on condition, wear or smell, require a clear CLOSE-UP that shows it"]`
       : "[]"
   },
-  "prep_tasks": ["zero or more short imperative tasks the owner must prepare DAYS IN ADVANCE for future sessions (e.g. 'Keep the sweaty socks from your next two padel games, dried and bagged, and carry them'); [] if none this round. Only set these on the more adventurous tiers."]
-}`;
+  "prep_tasks": ["zero or more short imperative tasks the owner must prepare DAYS IN ADVANCE for future sessions (e.g. 'Keep the sweaty socks from your next two padel games, dried and bagged, and carry them'); [] if none this round. Only set these on the more adventurous tiers."],
+  "diary_tasks": [{ "task": "what he must do", "on": "YYYY-MM-DD on or after ${todayIso}" }]
+}
+(diary_tasks: zero or more tasks to schedule for a SPECIFIC future date — use [] if none; only diarise when it genuinely makes sense.)`;
 
   const fallback: Authored = {
     instruction: brief.guide,
     flavor: "",
     proof_elements: [],
     prep_tasks: [],
+    diary_tasks: [],
   };
   let authored = fallback;
   try {
@@ -310,6 +353,18 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
         user_id: user.id,
         kind: "prep",
         title: t.slice(0, 300),
+      }))
+    );
+  }
+
+  // Diarised tasks land on a specific future date (stored in game_on).
+  if (!sealedUntil && authored.diary_tasks.length) {
+    await supabase.from("bf_memory").insert(
+      authored.diary_tasks.map((d) => ({
+        user_id: user.id,
+        kind: "diary",
+        title: d.task.slice(0, 300),
+        game_on: d.on,
       }))
     );
   }

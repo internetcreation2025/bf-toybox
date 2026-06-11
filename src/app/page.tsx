@@ -11,8 +11,13 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
   const todayIso = new Date().toISOString().slice(0, 10);
-  const [{ data: streak }, { data: active }, { data: games }, { data: preps }] =
-    await Promise.all([
+  const [
+    { data: streak },
+    { data: active },
+    { data: games },
+    { data: preps },
+    { data: diary },
+  ] = await Promise.all([
       supabase
         .from("bf_streak")
         .select("current_streak, longest_streak, freeze_tokens")
@@ -37,11 +42,22 @@ export default async function Home() {
         .eq("kind", "prep")
         .eq("status", "open")
         .order("created_at", { ascending: true }),
+      supabase
+        .from("bf_memory")
+        .select("id, title, game_on")
+        .eq("kind", "diary")
+        .eq("status", "open")
+        .order("game_on", { ascending: true }),
     ]);
 
   const activeSessions = (active ?? []) as ActiveChallenge[];
   const gameFollowups = (games ?? []) as GameMemory[];
   const prepItems = (preps ?? []) as PrepItem[];
+  const diaryItems = ((diary ?? []) as Array<{
+    id: string;
+    title: string;
+    game_on: string | null;
+  }>).map((d) => ({ id: d.id, title: d.title, due: d.game_on }));
 
   const sections = [
     { href: "/roll", label: "Roll my next 4 hours", soon: false },
@@ -99,6 +115,20 @@ export default async function Home() {
             {activeSessions.map((c) => (
               <ActiveSession key={c.id} challenge={c} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {diaryItems.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            Your diary
+          </h2>
+          <p className="mt-1 text-xs text-neutral-400">
+            Dated tasks the Decider scheduled. Highlighted ones are due.
+          </p>
+          <div className="mt-3">
+            <PrepMemory items={diaryItems} />
           </div>
         </section>
       )}

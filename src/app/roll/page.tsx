@@ -34,6 +34,15 @@ export default function RollPage() {
     "schedule"
   );
 
+  // ── when & where ──
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }, []);
+  const [date, setDate] = useState(todayIso);
+  const [weatherLocation, setWeatherLocation] = useState("");
+
   // ── schedule (the next few hours, with the times the owner sets) ──
   const [slots, setSlots] = useState<Slot[]>([
     { label: "", activity: "", location: "" },
@@ -119,6 +128,8 @@ export default function RollPage() {
           footwear: onHand,
           context: context.trim(),
           smell: smellOn ? smell : undefined,
+          date,
+          weatherLocation: weatherLocation.trim() || undefined,
           doubleOrNothing: !!opts.doubleOrNothing,
           sealMinutes: opts.sealMinutes ?? 0,
         }),
@@ -163,7 +174,30 @@ export default function RollPage() {
             you&apos;re doing, and where.
           </p>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-medium text-neutral-500">Date</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-neutral-500">
+                Your area, for weather (optional)
+              </span>
+              <input
+                value={weatherLocation}
+                onChange={(e) => setWeatherLocation(e.target.value)}
+                placeholder="e.g. Reading, UK"
+                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 space-y-3">
             {slots.map((s, i) => (
               <div
                 key={i}
