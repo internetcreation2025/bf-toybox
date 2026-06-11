@@ -17,7 +17,7 @@ export default async function Home() {
     { href: "/feet", label: "Teach it my feet", soon: false },
     { href: "/catalogue", label: "Footwear catalogue", soon: false },
     { href: "/settings", label: "The Decider (settings)", soon: false },
-    { href: "/archive", label: "Archive", soon: true },
+    { href: "/archive", label: "Archive", soon: false },
     { href: "/stats", label: "Stats & achievements", soon: true },
   ];
 

@@ -253,6 +253,15 @@ export default function RollPage() {
 
           {revealed && (
             <div className="mt-6 space-y-3">
+              {result.proofRequired && (
+                <Link
+                  href={`/proof/${result.id}`}
+                  className="block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-90"
+                  style={{ backgroundColor: "#a855f7" }}
+                >
+                  Submit proof now →
+                </Link>
+              )}
               {!usedDouble && (
                 <button
                   disabled={rolling}
@@ -333,7 +342,7 @@ function RevealCard({
             ))}
           </ul>
           <p className="mt-3 text-xs text-neutral-400">
-            Photo proof &amp; foot-match verification arrive in the next phase.
+            Reveal complete — submit your photo proof to lock in the win.
           </p>
         </div>
       )}
