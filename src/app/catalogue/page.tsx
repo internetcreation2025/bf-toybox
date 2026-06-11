@@ -214,6 +214,7 @@ export default function CataloguePage() {
             key={it.id}
             it={it}
             url={urls[it.id]}
+            userId={userId}
             onDelete={() => handleDelete(it)}
             onReprofile={async () => {
               await profile(it.id);
@@ -230,12 +231,14 @@ export default function CataloguePage() {
 function ItemCard({
   it,
   url,
+  userId,
   onDelete,
   onReprofile,
   onChanged,
 }: {
   it: Item;
   url?: string;
+  userId: string | null;
   onDelete: () => void;
   onReprofile: () => Promise<void>;
   onChanged: () => Promise<void>;
@@ -246,6 +249,71 @@ function ItemCard({
   const [hours, setHours] = useState("");
   const [played, setPlayed] = useState(false);
   const [dried, setDried] = useState(false);
+
+  // Editing the item's details.
+  const [editing, setEditing] = useState(false);
+  const [eName, setEName] = useState(it.name);
+  const [eCategory, setECategory] = useState(it.category);
+  const [eColour, setEColour] = useState(it.colour ?? "");
+  const [eNotes, setENotes] = useState(it.notes ?? "");
+  const [ePhoto, setEPhoto] = useState<File | null>(null);
+  const [editErr, setEditErr] = useState("");
+
+  function startEdit() {
+    setEName(it.name);
+    setECategory(it.category);
+    setEColour(it.colour ?? "");
+    setENotes(it.notes ?? "");
+    setEPhoto(null);
+    setEditErr("");
+    setEditing(true);
+  }
+
+  async function saveEdit() {
+    if (!eName.trim()) {
+      setEditErr("Name can't be empty.");
+      return;
+    }
+    setBusy(true);
+    setEditErr("");
+    try {
+      await supabase
+        .from("bf_footwear")
+        .update({
+          name: eName.trim(),
+          category: eCategory,
+          colour: eColour.trim() || null,
+          notes: eNotes.trim() || null,
+        })
+        .eq("id", it.id);
+
+      // New photo → upload, point the row at it, and re-profile.
+      if (ePhoto && userId) {
+        const blob = await resizeImage(ePhoto);
+        const path = `${userId}/footwear/${it.id}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("bf-feet")
+          .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+        if (upErr) throw upErr;
+        await supabase
+          .from("bf_footwear")
+          .update({ photo_path: path })
+          .eq("id", it.id);
+        await fetch("/api/footwear/dossier", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: it.id }),
+        });
+      }
+
+      setEditing(false);
+      await onChanged();
+    } catch (e) {
+      setEditErr(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const isSock = it.category === "socks";
   const wornHours = it.worn_hours ?? 0;
@@ -370,6 +438,12 @@ function ItemCard({
             Worn bare once
           </button>
         )}
+        <button
+          onClick={startEdit}
+          className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        >
+          Edit
+        </button>
         {it.photo_path && (
           <button
             onClick={onReprofile}
@@ -379,6 +453,68 @@ function ItemCard({
           </button>
         )}
       </div>
+
+      {/* Edit details */}
+      {editing && (
+        <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+          <input
+            value={eName}
+            onChange={(e) => setEName(e.target.value)}
+            placeholder="Name"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <select
+              value={eCategory}
+              onChange={(e) => setECategory(e.target.value)}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm capitalize outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            >
+              {FOOTWEAR_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {prettyCategory(c)}
+                </option>
+              ))}
+            </select>
+            <input
+              value={eColour}
+              onChange={(e) => setEColour(e.target.value)}
+              placeholder="Colour (optional)"
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          </div>
+          <input
+            value={eNotes}
+            onChange={(e) => setENotes(e.target.value)}
+            placeholder="Notes (optional)"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+          <label className="block text-xs text-neutral-500">
+            Replace photo (optional — re-profiles it)
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setEPhoto(e.target.files?.[0] ?? null)}
+              className="mt-1 block w-full text-sm text-neutral-500 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm dark:file:bg-neutral-800"
+            />
+          </label>
+          {editErr && <p className="text-xs text-red-500">{editErr}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={saveEdit}
+              disabled={busy}
+              className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+            >
+              {busy ? "Saving…" : "Save changes"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-lg px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {isSock && open && (
         <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
