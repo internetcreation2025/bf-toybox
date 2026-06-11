@@ -34,22 +34,35 @@ export default function RollPage() {
     "schedule"
   );
 
-  // ── schedule (next 4 hours, no gaps) ──
-  const initialSlots = useMemo<Slot[]>(() => {
-    const now = new Date();
-    const fmt = (d: Date) =>
-      d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    return [0, 1, 2, 3].map((i) => {
-      const start = new Date(now.getTime() + i * 3600000);
-      const end = new Date(now.getTime() + (i + 1) * 3600000);
-      return { label: `${fmt(start)} – ${fmt(end)}`, activity: "", location: "" };
-    });
-  }, []);
-  const [slots, setSlots] = useState<Slot[]>(initialSlots);
+  // ── schedule (the next few hours, with the times the owner sets) ──
+  const [slots, setSlots] = useState<Slot[]>([
+    { label: "", activity: "", location: "" },
+    { label: "", activity: "", location: "" },
+  ]);
 
-  const scheduleComplete = slots.every(
-    (s) => s.activity.trim() && s.location.trim()
-  );
+  const isComplete = (s: Slot) =>
+    !!(s.label.trim() && s.activity.trim() && s.location.trim());
+  const isBlank = (s: Slot) =>
+    !s.label.trim() && !s.activity.trim() && !s.location.trim();
+
+  const filledSlots = slots.filter(isComplete);
+  // Every row must be either fully filled or completely empty, and we need at
+  // least one filled row.
+  const scheduleComplete =
+    filledSlots.length >= 1 && slots.every((s) => isComplete(s) || isBlank(s));
+
+  function updateSlot(i: number, patch: Partial<Slot>) {
+    setSlots((prev) => prev.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+  }
+  function addSlot() {
+    setSlots((prev) => [...prev, { label: "", activity: "", location: "" }]);
+  }
+  function removeSlot(i: number) {
+    setSlots((prev) => prev.filter((_, j) => j !== i));
+  }
+
+  // ── optional free-text context for the Decider ──
+  const [context, setContext] = useState("");
 
   // ── footwear on hand ──
   const [catalogue, setCatalogue] = useState<FootwearItem[]>([]);
@@ -98,8 +111,9 @@ export default function RollPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schedule: slots,
+          schedule: filledSlots,
           footwear: onHand,
+          context: context.trim(),
           doubleOrNothing: !!opts.doubleOrNothing,
           sealMinutes: opts.sealMinutes ?? 0,
         }),
@@ -137,10 +151,11 @@ export default function RollPage() {
       {step === "schedule" && (
         <div className="mt-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Your next 4 hours
+            The next few hours
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Every hour, no gaps. What are you doing, and where?
+            Block out your plans in your own words — set the time for each, what
+            you&apos;re doing, and where.
           </p>
 
           <div className="mt-6 space-y-3">
@@ -149,31 +164,34 @@ export default function RollPage() {
                 key={i}
                 className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
               >
-                <p className="mb-2 text-xs font-medium text-neutral-500">
-                  {s.label}
-                </p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <input
+                    value={s.label}
+                    onChange={(e) => updateSlot(i, { label: e.target.value })}
+                    placeholder="Time (e.g. 2–3pm, or now till 3)"
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm font-medium outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                  />
+                  {slots.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSlot(i)}
+                      aria-label="Remove this block"
+                      className="shrink-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:hover:text-neutral-100"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <input
                     value={s.activity}
-                    onChange={(e) =>
-                      setSlots((prev) =>
-                        prev.map((p, j) =>
-                          j === i ? { ...p, activity: e.target.value } : p
-                        )
-                      )
-                    }
+                    onChange={(e) => updateSlot(i, { activity: e.target.value })}
                     placeholder="Activity (e.g. coffee)"
                     className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
                   />
                   <input
                     value={s.location}
-                    onChange={(e) =>
-                      setSlots((prev) =>
-                        prev.map((p, j) =>
-                          j === i ? { ...p, location: e.target.value } : p
-                        )
-                      )
-                    }
+                    onChange={(e) => updateSlot(i, { location: e.target.value })}
                     placeholder="Location (e.g. Starbucks, town)"
                     className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
                   />
@@ -183,11 +201,19 @@ export default function RollPage() {
           </div>
 
           <button
+            type="button"
+            onClick={addSlot}
+            className="mt-3 w-full rounded-lg border border-dashed border-neutral-300 px-4 py-2.5 text-sm text-neutral-500 hover:border-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:hover:text-neutral-100"
+          >
+            + Add a time block
+          </button>
+
+          <button
             disabled={!scheduleComplete}
             onClick={() => setStep("footwear")}
             className="mt-4 w-full rounded-lg bg-neutral-900 px-4 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
           >
-            {scheduleComplete ? "Next" : "Fill every hour to continue"}
+            {scheduleComplete ? "Next" : "Fill in at least one full block to continue"}
           </button>
         </div>
       )}
@@ -242,6 +268,15 @@ export default function RollPage() {
             onChange={(e) => setAdHoc(e.target.value)}
             placeholder="Other items, comma-separated (e.g. bare feet, white socks)"
             className="mt-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+
+          {/* Free-text context for the Decider */}
+          <textarea
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            rows={3}
+            placeholder="Anything the Decider should know? (optional) — e.g. lost my padel game, feet been in trainers all day, still have the socks I kept from last week"
+            className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm leading-relaxed outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
 
           {/* Mystery envelope */}

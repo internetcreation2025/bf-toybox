@@ -57,8 +57,8 @@ export default function ArchivePage() {
   const pending = rows.filter(
     (r) => r.status === "issued" && (r.proof_required_json?.length ?? 0) > 0
   );
-  const completed = rows.filter(
-    (r) => r.status === "verified" || r.status === "failed"
+  const completed = rows.filter((r) =>
+    ["verified", "failed", "completed", "cancelled"].includes(r.status)
   );
 
   return (
@@ -120,13 +120,9 @@ export default function ArchivePage() {
           </h2>
           <div className="mt-3 space-y-3">
             {completed.map((r) => {
-              const passed = r.status === "verified";
-              return (
-                <Link
-                  key={r.id}
-                  href={`/proof/${r.id}`}
-                  className="flex gap-4 rounded-xl border border-neutral-200 p-4 transition-colors hover:border-neutral-400 dark:border-neutral-800"
-                >
+              const badge = statusBadge(r.status);
+              const inner = (
+                <>
                   {thumbs[r.id] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -143,26 +139,38 @@ export default function ArchivePage() {
                     <div className="flex items-center gap-2">
                       <RarityTag rarity={r.rarity} />
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          passed
-                            ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400"
-                            : "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400"
-                        }`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badge.classes}`}
                       >
-                        {passed ? "Verified" : "Failed"}
+                        {badge.label}
                       </span>
                     </div>
                     <p className="mt-1.5 truncate text-sm text-neutral-600 dark:text-neutral-300">
                       {r.instruction}
                     </p>
-                    {r.verification_json && (
-                      <p className="mt-1 text-xs text-neutral-400">
-                        Match {r.verification_json.match_confidence}% ·{" "}
-                        {fmtDate(r.archived_at ?? r.created_at)}
-                      </p>
-                    )}
+                    <p className="mt-1 text-xs text-neutral-400">
+                      {r.verification_json
+                        ? `Match ${r.verification_json.match_confidence}% · `
+                        : ""}
+                      {fmtDate(r.archived_at ?? r.created_at)}
+                    </p>
                   </div>
+                </>
+              );
+              const cls =
+                "flex gap-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800";
+              // Only proof dares have a detail page (the forensic card).
+              return badge.link ? (
+                <Link
+                  key={r.id}
+                  href={`/proof/${r.id}`}
+                  className={`${cls} transition-colors hover:border-neutral-400`}
+                >
+                  {inner}
                 </Link>
+              ) : (
+                <div key={r.id} className={cls}>
+                  {inner}
+                </div>
               );
             })}
           </div>
@@ -170,6 +178,39 @@ export default function ArchivePage() {
       )}
     </main>
   );
+}
+
+function statusBadge(status: string): {
+  label: string;
+  classes: string;
+  link: boolean;
+} {
+  switch (status) {
+    case "verified":
+      return {
+        label: "Verified",
+        classes: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400",
+        link: true,
+      };
+    case "completed":
+      return {
+        label: "Done",
+        classes: "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-400",
+        link: false,
+      };
+    case "cancelled":
+      return {
+        label: "Cancelled",
+        classes: "bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400",
+        link: false,
+      };
+    default:
+      return {
+        label: "Failed",
+        classes: "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400",
+        link: true,
+      };
+  }
 }
 
 function RarityTag({ rarity }: { rarity: Rarity }) {

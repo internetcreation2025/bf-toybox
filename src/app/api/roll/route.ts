@@ -80,11 +80,13 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     schedule?: Slot[];
     footwear?: FootwearItem[];
+    context?: string;
     doubleOrNothing?: boolean;
     sealMinutes?: number;
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
+  const context = (body.context ?? "").trim().slice(0, 2000);
   const sealMinutes =
     typeof body.sealMinutes === "number" && body.sealMinutes > 0
       ? Math.min(body.sealMinutes, 24 * 60)
@@ -94,11 +96,13 @@ export async function POST(request: Request) {
     : null;
 
   if (
-    schedule.length < 4 ||
-    schedule.some((s) => !s.activity?.trim() || !s.location?.trim())
+    schedule.length < 1 ||
+    schedule.some(
+      (s) => !s.label?.trim() || !s.activity?.trim() || !s.location?.trim()
+    )
   ) {
     return NextResponse.json(
-      { error: "Fill in all four hours — no gaps." },
+      { error: "Add at least one time block (time, activity and place)." },
       { status: 400 }
     );
   }
@@ -145,6 +149,11 @@ Footwear on hand right now: ${footwear
     .map((f) => `${f.name} (${f.category})`)
     .join(", ")}
 ${weather ? `Current weather near them: ${weather}` : ""}
+${
+  context
+    ? `Notes from the owner (use these — they may include game results/performance, foot or sock state, mood, or something he prepped earlier and is now carrying): ${context}`
+    : ""
+}
 Today's date: ${today}
 
 Rolled rarity: ${rarity.toUpperCase()}. Tier directive: ${brief.guide}
@@ -156,7 +165,7 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   "flavor": "one short punchy line in the persona voice",
   "proof_elements": ${
     brief.proofRequired
-      ? `["2 to 4 specific things that must appear in the proof photo — include the tops of the bare feet, an object proving the schedule location/context, and today's date (${today}) written on the foot in pen"]`
+      ? `["2 to 5 specific things that must appear in the proof photo — include the bare feet, an object proving the location/context, and today's date (${today}) written on the foot in pen; state the expected foot condition (clean, or slightly dirty/sweaty); and if the dare hinges on condition, wear or smell, require a clear CLOSE-UP that shows it"]`
       : "[]"
   }
 }`;
