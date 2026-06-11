@@ -40,6 +40,10 @@ export default function CataloguePage() {
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
 
+  // Filtering + full-size viewing.
+  const [filter, setFilter] = useState<string>("all");
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     const {
       data: { user },
@@ -205,25 +209,74 @@ export default function CataloguePage() {
         {error && <p className="text-sm text-red-500">{error}</p>}
       </form>
 
-      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {/* Filter by category */}
+      {items.length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-2">
+          {(["all", ...FOOTWEAR_CATEGORIES.filter((c) =>
+            items.some((it) => it.category === c)
+          )] as string[]).map((c) => {
+            const on = filter === c;
+            const count =
+              c === "all"
+                ? items.length
+                : items.filter((it) => it.category === c).length;
+            return (
+              <button
+                key={c}
+                onClick={() => setFilter(c)}
+                className={`rounded-full border px-3 py-1.5 text-sm capitalize transition-colors ${
+                  on
+                    ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                    : "border-neutral-300 dark:border-neutral-700"
+                }`}
+              >
+                {c === "all" ? "All" : prettyCategory(c)}{" "}
+                <span className={on ? "opacity-70" : "text-neutral-400"}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.length === 0 && (
           <p className="text-sm text-neutral-400">No footwear yet.</p>
         )}
-        {items.map((it) => (
-          <ItemCard
-            key={it.id}
-            it={it}
-            url={urls[it.id]}
-            userId={userId}
-            onDelete={() => handleDelete(it)}
-            onReprofile={async () => {
-              await profile(it.id);
-              await load();
-            }}
-            onChanged={load}
-          />
-        ))}
+        {items
+          .filter((it) => filter === "all" || it.category === filter)
+          .map((it) => (
+            <ItemCard
+              key={it.id}
+              it={it}
+              url={urls[it.id]}
+              userId={userId}
+              onView={setLightbox}
+              onDelete={() => handleDelete(it)}
+              onReprofile={async () => {
+                await profile(it.id);
+                await load();
+              }}
+              onChanged={load}
+            />
+          ))}
       </div>
+
+      {/* Full-size photo viewer */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Footwear"
+            className="max-h-[90vh] max-w-full rounded-xl object-contain"
+          />
+        </div>
+      )}
     </main>
   );
 }
@@ -232,6 +285,7 @@ function ItemCard({
   it,
   url,
   userId,
+  onView,
   onDelete,
   onReprofile,
   onChanged,
@@ -239,6 +293,7 @@ function ItemCard({
   it: Item;
   url?: string;
   userId: string | null;
+  onView: (url: string) => void;
   onDelete: () => void;
   onReprofile: () => Promise<void>;
   onChanged: () => Promise<void>;
@@ -382,12 +437,19 @@ function ItemCard({
   return (
     <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="flex gap-4">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-900">
-          {url && (
-            // eslint-disable-next-line @next/next/no-img-element
+        {url ? (
+          <button
+            type="button"
+            onClick={() => onView(url)}
+            aria-label={`View ${it.name} larger`}
+            className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100 transition-opacity hover:opacity-90 dark:bg-neutral-900"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt={it.name} className="h-full w-full object-cover" />
-          )}
-        </div>
+          </button>
+        ) : (
+          <div className="h-24 w-24 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-900" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{it.name}</p>
           <p className="text-xs capitalize text-neutral-500">
