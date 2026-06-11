@@ -15,10 +15,18 @@ export type ActiveChallenge = {
   status: string;
 };
 
+type Ruling = { outcome: "upheld" | "harsher" | "mercy" | "error"; reply: string };
+
 export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Negotiating with the Decider.
+  const [showAppeal, setShowAppeal] = useState(false);
+  const [plea, setPlea] = useState("");
+  const [appealing, setAppealing] = useState(false);
+  const [ruling, setRuling] = useState<Ruling | null>(null);
 
   const meta = RARITY_META[challenge.rarity];
   const sealed = challenge.status === "sealed";
@@ -41,6 +49,31 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not update");
       setBusy(false);
+    }
+  }
+
+  async function sendAppeal() {
+    if (!plea.trim()) return;
+    setAppealing(true);
+    setRuling(null);
+    try {
+      const res = await fetch("/api/challenges/appeal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id, message: plea }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "The Decider didn't respond");
+      setRuling({ outcome: json.outcome, reply: json.reply });
+      setPlea("");
+      router.refresh(); // pull the (possibly changed) verdict into the card
+    } catch (e) {
+      setRuling({
+        outcome: "error",
+        reply: e instanceof Error ? e.message : "Something went wrong.",
+      });
+    } finally {
+      setAppealing(false);
     }
   }
 
@@ -118,6 +151,71 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         </p>
       )}
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+
+      {/* Negotiate with the Decider (not for sealed envelopes) */}
+      {!sealed && (
+        <div className="mt-4 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+          {!showAppeal ? (
+            <button
+              onClick={() => setShowAppeal(true)}
+              className="text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              Talk to the Decider →
+            </button>
+          ) : (
+            <div>
+              <textarea
+                value={plea}
+                onChange={(e) => setPlea(e.target.value)}
+                rows={2}
+                placeholder="Reason with the Decider… (it may soften this, or make it worse)"
+                className="w-full rounded-lg border border-neutral-300 p-2.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={sendAppeal}
+                  disabled={appealing || !plea.trim()}
+                  className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+                >
+                  {appealing ? "Putting your case…" : "Send"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAppeal(false);
+                    setPlea("");
+                  }}
+                  className="rounded-lg border border-neutral-300 px-4 py-2 text-sm text-neutral-500 dark:border-neutral-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {ruling && (
+            <div
+              className={`mt-3 rounded-xl p-3 text-sm ${
+                ruling.outcome === "mercy"
+                  ? "bg-green-50 text-green-800 dark:bg-green-950/40 dark:text-green-300"
+                  : ruling.outcome === "harsher"
+                  ? "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300"
+                  : "bg-neutral-50 text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
+              }`}
+            >
+              {ruling.outcome !== "error" && (
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide">
+                  {ruling.outcome === "mercy"
+                    ? "Mercy"
+                    : ruling.outcome === "harsher"
+                    ? "Harsher"
+                    : "Upheld"}
+                </p>
+              )}
+              <p className="italic">{ruling.reply}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
