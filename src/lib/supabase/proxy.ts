@@ -12,6 +12,12 @@ function matches(path: string, list: string[]) {
 //  1) must be logged in AND the email must match ALLOWED_EMAIL
 //  2) must have completed the authenticator-code step (assurance level aal2)
 export async function updateSession(request: NextRequest) {
+  // The cron dispatcher is called by an external scheduler with no session — it
+  // guards itself with a shared secret, so skip the auth funnel entirely.
+  if (request.nextUrl.pathname.startsWith("/api/cron")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -10,6 +10,13 @@ import {
   isPersonaKey,
   type PersonaKey,
 } from "@/lib/decider";
+import {
+  VAPID_PUBLIC_KEY,
+  pushSupported,
+  currentSubscription,
+  subscribe,
+  unsubscribe,
+} from "@/lib/push-client";
 
 export default function SettingsPage() {
   const supabase = createClient();
@@ -144,6 +151,114 @@ export default function SettingsPage() {
           <span className="text-sm text-green-600">Saved</span>
         )}
       </div>
+
+      <NotificationsSection />
     </main>
+  );
+}
+
+function NotificationsSection() {
+  const configured = !!VAPID_PUBLIC_KEY;
+  const [supported, setSupported] = useState<boolean | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    if (!pushSupported()) {
+      setSupported(false);
+      return;
+    }
+    setSupported(true);
+    currentSubscription()
+      .then((s) => setEnabled(!!s))
+      .catch(() => {});
+  }, []);
+
+  async function toggle() {
+    setBusy(true);
+    setMsg("");
+    try {
+      if (enabled) {
+        await unsubscribe();
+        setEnabled(false);
+        setMsg("Notifications turned off.");
+      } else {
+        await subscribe();
+        setEnabled(true);
+        setMsg("Notifications on for this device.");
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendTest() {
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Test failed");
+      setMsg("Test sent — check your notifications.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="mt-12 border-t border-neutral-200 pt-8 dark:border-neutral-800">
+      <h2 className="text-sm font-semibold">Notifications</h2>
+      <p className="mt-1 text-xs text-neutral-400">
+        Get a quiet, content-free nudge when a sealed mystery envelope is ready
+        to open. The alert never shows the verdict — it just tells you to open
+        the app.
+      </p>
+
+      {supported === false ? (
+        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm text-neutral-500 dark:bg-neutral-900">
+          This browser can&apos;t do push notifications. On iPhone, add the app
+          to your Home Screen and open it from there first.
+        </p>
+      ) : !configured ? (
+        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm text-neutral-500 dark:bg-neutral-900">
+          Notifications aren&apos;t switched on by the server yet (the push keys
+          still need to be added).
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            onClick={toggle}
+            disabled={busy}
+            className={`rounded-lg px-5 py-2.5 text-sm font-medium disabled:opacity-50 ${
+              enabled
+                ? "border border-neutral-300 dark:border-neutral-700"
+                : "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+            }`}
+          >
+            {busy
+              ? "Working…"
+              : enabled
+              ? "Turn off on this device"
+              : "Turn on notifications"}
+          </button>
+          {enabled && (
+            <button
+              onClick={sendTest}
+              disabled={busy}
+              className="rounded-lg border border-neutral-300 px-5 py-2.5 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+            >
+              Send test
+            </button>
+          )}
+        </div>
+      )}
+
+      {msg && <p className="mt-3 text-sm text-neutral-500">{msg}</p>}
+    </section>
   );
 }
