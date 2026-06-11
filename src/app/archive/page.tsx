@@ -54,6 +54,18 @@ export default function ArchivePage() {
     load();
   }, [load]);
 
+  const [deleting, setDeleting] = useState<string | null>(null);
+  async function remove(id: string) {
+    setDeleting(id);
+    await fetch("/api/challenges/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ challengeId: id }),
+    });
+    await load();
+    setDeleting(null);
+  }
+
   const pending = rows.filter(
     (r) => r.status === "issued" && (r.proof_required_json?.length ?? 0) > 0
   );
@@ -170,6 +182,15 @@ export default function ArchivePage() {
               ) : (
                 <div key={r.id} className={cls}>
                   {inner}
+                  {r.status === "cancelled" && (
+                    <button
+                      onClick={() => remove(r.id)}
+                      disabled={deleting === r.id}
+                      className="shrink-0 self-start rounded-lg border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 hover:border-red-300 hover:text-red-600 disabled:opacity-50 dark:border-neutral-700"
+                    >
+                      {deleting === r.id ? "…" : "Delete"}
+                    </button>
+                  )}
                 </div>
               );
             })}
