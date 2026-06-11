@@ -20,6 +20,7 @@ export default function FeetPage() {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const {
@@ -116,17 +117,34 @@ export default function FeetPage() {
       )}
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {FOOT_ANGLES.map((a) => (
+        {FOOT_ANGLES.map((a, i) => (
           <AngleCard
             key={a.key}
             label={a.label}
             url={urls[a.key]}
             ref_={refs[a.key]}
             busy={busy === a.key}
+            index={i}
+            onView={setLightbox}
             onPick={(file) => handleUpload(a.key, file)}
           />
         ))}
       </div>
+
+      {/* Full-size photo viewer */}
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightbox}
+            alt="Foot reference"
+            className="max-h-[90vh] max-w-full rounded-xl object-contain"
+          />
+        </div>
+      )}
     </main>
   );
 }
@@ -136,12 +154,16 @@ function AngleCard({
   url,
   ref_,
   busy,
+  index,
+  onView,
   onPick,
 }: {
   label: string;
   url?: string;
   ref_?: RefRow;
   busy: boolean;
+  index: number;
+  onView: (url: string) => void;
   onPick: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -155,19 +177,33 @@ function AngleCard({
         <StatusDot busy={busy} uploaded={uploaded} learned={learned} />
       </div>
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={busy}
-        className="mt-3 block aspect-[4/3] w-full overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-400 transition-colors hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950"
-      >
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={label} className="h-full w-full object-cover" />
-        ) : (
+      {url ? (
+        // Tap the photo to expand it. The image shows in full (no crop).
+        <button
+          type="button"
+          onClick={() => onView(url)}
+          disabled={busy}
+          aria-label={`View ${label} larger`}
+          className="mt-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 disabled:opacity-60 dark:border-neutral-800 dark:bg-neutral-950"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt={label}
+            style={{ animationDelay: `${index * 0.7}s` }}
+            className="toe-wiggle max-h-full max-w-full object-contain"
+          />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          className="mt-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-400 transition-colors hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950"
+        >
           <span>Tap to add photo</span>
-        )}
-      </button>
+        </button>
+      )}
 
       <input
         ref={inputRef}
@@ -180,6 +216,16 @@ function AngleCard({
           e.target.value = "";
         }}
       />
+
+      {url && !busy && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="mt-2 text-xs text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+        >
+          Replace photo
+        </button>
+      )}
 
       {busy && (
         <p className="mt-2 text-xs text-neutral-500">Analysing…</p>

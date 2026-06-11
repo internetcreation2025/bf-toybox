@@ -24,3 +24,24 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* A very subtle, occasional "toe wiggle" for foot thumbnails. Still most of
+   the cycle, then a small flutter — staggered per card via animation-delay. */
+@keyframes toe-wiggle {
+  0%, 86%, 100% { transform: rotate(0deg); }
+  89% { transform: rotate(-1.6deg); }
+  92% { transform: rotate(1.6deg); }
+  95% { transform: rotate(-0.9deg); }
+  98% { transform: rotate(0.5deg); }
+}
+
+.toe-wiggle {
+  transform-origin: 50% 85%;
+  animation: toe-wiggle 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toe-wiggle {
+    animation: none;
+  }
+}

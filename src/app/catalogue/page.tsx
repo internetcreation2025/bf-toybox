@@ -442,10 +442,14 @@ function ItemCard({
             type="button"
             onClick={() => onView(url)}
             aria-label={`View ${it.name} larger`}
-            className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100 transition-opacity hover:opacity-90 dark:bg-neutral-900"
+            className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-neutral-100 transition-opacity hover:opacity-90 dark:bg-neutral-900"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt={it.name} className="h-full w-full object-cover" />
+            <img
+              src={url}
+              alt={it.name}
+              className="max-h-full max-w-full object-contain"
+            />
           </button>
         ) : (
           <div className="h-24 w-24 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-900" />
