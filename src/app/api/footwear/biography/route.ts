@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
 import { PERSONAS } from "@/lib/decider";
-import { sockStage, SOCK_STAGE_META } from "@/lib/socks";
+import { describeSock } from "@/lib/socks";
 
 // The Archivist writes a short, evolving "biography" for one sock, built from
 // its real recorded history (wears, washes, sport, what it's been paired with).
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const stage = sockStage(sock);
+  const stageDesc = describeSock(sock);
 
   const facts = [
     `Name: ${sock.name}`,
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     `Wet-then-dried re-wears: ${driedReuses}`,
     `Times washed: ${washes}`,
     `Peak recorded smell: ${peakSmell}/10`,
-    `Current life-stage: ${SOCK_STAGE_META[stage].label} — ${SOCK_STAGE_META[stage].hint}`,
+    `Current life-stage: ${stageDesc.label} — ${stageDesc.hint}`,
     pairedWith.size
       ? `Footwear it's been worn inside: ${[...pairedWith].join(", ")}`
       : `No footwear pairings recorded yet.`,

@@ -10,7 +10,7 @@ import {
   prettyCategory,
   type FootwearCategory,
 } from "@/lib/feet";
-import { sockStage, SOCK_STAGE_META, estimateSmell } from "@/lib/socks";
+import { describeSock, estimateSmell } from "@/lib/socks";
 
 type Item = {
   id: string;
@@ -454,14 +454,13 @@ function ItemCard({
   const socklessCount = it.sockless_count ?? 0;
   const washCount = it.wash_count ?? 0;
   const currentSmell = estimateSmell(wornHours, playedCount, driedCount);
-  const stage = sockStage({
+  const stageMeta = describeSock({
     retired: it.retired,
     worn_hours: wornHours,
     played_count: playedCount,
     dried_count: driedCount,
     last_worn_at: it.last_worn_at,
   });
-  const stageMeta = SOCK_STAGE_META[stage];
 
   // Sock biography (the Archivist's evolving story for this pair).
   const [bio, setBio] = useState(it.bio ?? "");

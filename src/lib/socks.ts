@@ -13,8 +13,12 @@ export type SockWearState = {
 };
 
 // Guess a sock's current ripeness 0–10 from its wear since its last wash. A wash
-// resets the wear counters, so a freshly washed sock reads 0. Sport sessions and
-// wet-then-dried re-wears push it up faster than plain hours.
+// resets the wear counters, so a freshly washed sock reads 0.
+//
+// Calibrated to real life: plain hours creep up slowly (a normal day in a shoe
+// ≈ 8h ≈ 2/10; two days ≈ 4/10; three solid days ≈ 6/10), while SPORT spikes it
+// — one sweaty game lands around 5/10 on its own, and re-wearing a sweat-dried
+// pair is the grimmest of all.
 export function estimateSmell(
   hours: number,
   played: number,
@@ -22,7 +26,7 @@ export function estimateSmell(
 ): number {
   return Math.max(
     0,
-    Math.min(10, Math.round(hours * 0.35 + played * 1.6 + dried * 1.9))
+    Math.min(10, Math.round(hours * 0.25 + played * 4.5 + dried * 2.5))
   );
 }
 
@@ -35,13 +39,14 @@ export function smellOf(s: SockWearState): number {
 }
 
 // Overdue = the guessed smell is high enough that it genuinely wants a wash.
-export const OVERDUE_SMELL = 7;
+export const OVERDUE_SMELL = 8;
 export function isOverdue(s: SockWearState): boolean {
   return smellOf(s) >= OVERDUE_SMELL;
 }
 
-// The stage now simply follows the guessed smell, so the label always agrees
-// with the number shown beside it.
+// The stage follows the guessed smell, so the label always agrees with the
+// number shown beside it: clean → lightly worn (1–4) → getting ripe (5–7) →
+// overdue (8–10).
 export function sockStage(s: SockWearState): SockStage {
   if (s.retired) return "retired";
   const hours = Number(s.worn_hours) || 0;
@@ -50,8 +55,38 @@ export function sockStage(s: SockWearState): SockStage {
   if (hours === 0 && played === 0 && dried === 0) return "clean";
   const smell = estimateSmell(hours, played, dried);
   if (smell >= OVERDUE_SMELL) return "overdue";
-  if (smell >= 4) return "ripe";
+  if (smell >= 5) return "ripe";
   return "light";
+}
+
+// A context-aware description: a sock that's ripe from SPORT/sweat reads
+// differently from one that's just been in a shoe for days. Returns the chip's
+// full styling so the catalogue and Chronicle stay in sync.
+export function describeSock(s: SockWearState): {
+  label: string;
+  hint: string;
+  dot: string;
+  classes: string;
+} {
+  const stage = sockStage(s);
+  const base = SOCK_STAGE_META[stage];
+  const sweaty =
+    (Number(s.played_count) || 0) > 0 || (Number(s.dried_count) || 0) > 0;
+  if (sweaty && stage === "overdue") {
+    return {
+      ...base,
+      label: "Sweat-soaked",
+      hint: "Sweated through in sport (and re-worn) — properly rank. Wash it.",
+    };
+  }
+  if (sweaty && stage === "ripe") {
+    return {
+      ...base,
+      label: "Sweaty",
+      hint: "Took a sweat in a game — turning rank.",
+    };
+  }
+  return base;
 }
 
 export const SOCK_STAGE_META: Record<

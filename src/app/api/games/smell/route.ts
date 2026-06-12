@@ -2,14 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
 import { PERSONAS, DEFAULT_PERSONA, isPersonaKey } from "@/lib/decider";
+import { estimateSmell } from "@/lib/socks";
 
 // Smell-o-Meter: invents a sock's wear history, narrates it in the Decider's
 // voice WITHOUT stating a number, and returns the "true" smell index (0-10) the
-// player has to guess. The index is computed from a simple model that mirrors
-// Mike's real one (hours damp, sport sweat, wet-then-dried intensifier).
-function clamp(n: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, n));
-}
+// player has to guess. The index uses the same shared model as the catalogue.
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -21,14 +18,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const hours = Math.floor(Math.random() * 15); // 0-14 since last wash
-  const played = Math.floor(Math.random() * 4); // 0-3 sport sessions
-  const dried = Math.floor(Math.random() * 3); // 0-2 wet-then-dried re-wears
-  const actual = clamp(
-    Math.round(hours * 0.35 + played * 1.6 + dried * 1.9),
-    0,
-    10
-  );
+  // Bias toward no-sport scenarios so the guessable range isn't pinned at 10
+  // (sport weighs heavily in the shared model).
+  const hours = Math.floor(Math.random() * 19); // 0-18h since last wash
+  const played = Math.random() < 0.5 ? 0 : Math.random() < 0.7 ? 1 : 2;
+  const dried = Math.random() < 0.7 ? 0 : 1; // wet-then-dried re-wear
+  const actual = estimateSmell(hours, played, dried);
 
   const { data: settings } = await supabase
     .from("bf_settings")

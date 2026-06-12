@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { estimateSmell } from "@/lib/socks";
 
 // Resolves an active (in-play) challenge that doesn't need photo proof:
 //  - "completed": honour-system done → archive it and bump the streak.
@@ -137,10 +138,7 @@ export async function POST(request: Request) {
         })
         .eq("id", id);
       // Audit trail (resilient — no-ops if bf_sock_log isn't there yet).
-      const smell = Math.max(
-        0,
-        Math.min(10, Math.round(nHours * 0.35 + nPlayed * 1.6 + nDried * 1.9))
-      );
+      const smell = estimateSmell(nHours, nPlayed, nDried);
       await supabase.from("bf_sock_log").insert({
         user_id: user.id,
         sock_id: id,
