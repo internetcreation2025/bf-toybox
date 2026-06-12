@@ -10,7 +10,7 @@ import {
   prettyCategory,
   type FootwearCategory,
 } from "@/lib/feet";
-import { sockStage, SOCK_STAGE_META } from "@/lib/socks";
+import { sockStage, SOCK_STAGE_META, estimateSmell } from "@/lib/socks";
 
 type Item = {
   id: string;
@@ -33,11 +33,6 @@ type Item = {
   bio: string | null;
   bio_updated_at: string | null;
 };
-
-// Same model the Smell-o-Meter uses — estimate current ripeness 0–10.
-function estimateSmell(hours: number, played: number, dried: number): number {
-  return Math.max(0, Math.min(10, Math.round(hours * 0.35 + played * 1.6 + dried * 1.9)));
-}
 
 // Maps the 3-way sockless preference UI value to a nullable boolean column.
 type SocklessPref = "unset" | "yes" | "no";
