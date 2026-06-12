@@ -17,8 +17,22 @@ function normalise(s: string): string {
   return s.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+// Treat well-known look-alike characters as the same, so an obvious handwriting
+// confusion (a Q read as 0, etc.) still passes.
+const LOOKALIKE_GROUPS = ["0OQD", "1ILT", "2Z", "5S", "6G", "8B", "9G", "VU"];
+const CANON: Record<string, string> = {};
+for (const g of LOOKALIKE_GROUPS) for (const ch of g) CANON[ch] = g[0];
+
+function canon(s: string): string {
+  return normalise(s)
+    .split("")
+    .map((c) => CANON[c] ?? c)
+    .join("");
+}
+
 type Outcome = {
   pass: boolean;
+  exact: boolean;
   read: string;
   description: string;
   previewUrl: string;
@@ -77,7 +91,8 @@ export default function VisionTestPage() {
         .createSignedUrl(path, 3600);
 
       setOutcome({
-        pass: normalise(json.code || "") === normalise(code),
+        pass: canon(json.code || "") === canon(code),
+        exact: normalise(json.code || "") === normalise(code),
         read: json.code || "(nothing readable)",
         description: json.description || "",
         previewUrl: signed?.signedUrl ?? "",
@@ -157,7 +172,9 @@ export default function VisionTestPage() {
           >
             <p className="text-sm font-semibold">
               {outcome.pass
-                ? "PASS — the AI read your code correctly."
+                ? outcome.exact
+                  ? "PASS — the AI read your code exactly."
+                  : "PASS — close enough (a look-alike character)."
                 : "Mismatch — the AI didn't read the exact code."}
             </p>
             <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
