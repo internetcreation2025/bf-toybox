@@ -25,7 +25,13 @@ type Item = {
   sockless_count: number | null;
   last_washed_at: string | null;
   sockless_ok: boolean | null;
+  wash_count: number | null;
 };
+
+// Same model the Smell-o-Meter uses — estimate current ripeness 0–10.
+function estimateSmell(hours: number, played: number, dried: number): number {
+  return Math.max(0, Math.min(10, Math.round(hours * 0.35 + played * 1.6 + dried * 1.9)));
+}
 
 // Maps the 3-way sockless preference UI value to a nullable boolean column.
 type SocklessPref = "unset" | "yes" | "no";
@@ -423,6 +429,14 @@ function ItemCard({
   const playedCount = it.played_count ?? 0;
   const driedCount = it.dried_count ?? 0;
   const socklessCount = it.sockless_count ?? 0;
+  const washCount = it.wash_count ?? 0;
+  const currentSmell = estimateSmell(wornHours, playedCount, driedCount);
+
+  // Per-sock audit history (lazy-loaded).
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [audit, setAudit] = useState<
+    Array<{ event: string; hours: number | null; smell: number | null; created_at: string }>
+  >([]);
 
   // Socks carry hours + wash state; shoes only carry a "worn bare" tally.
   const wearBits: string[] = [];
@@ -437,15 +451,27 @@ function ItemCard({
   async function logWear() {
     setBusy(true);
     const h = Number(hours) || 0;
+    const nHours = wornHours + h;
+    const nPlayed = playedCount + (played ? 1 : 0);
+    const nDried = driedCount + (dried ? 1 : 0);
     await supabase
       .from("bf_footwear")
       .update({
-        worn_hours: wornHours + h,
-        played_count: playedCount + (played ? 1 : 0),
-        dried_count: driedCount + (dried ? 1 : 0),
+        worn_hours: nHours,
+        played_count: nPlayed,
+        dried_count: nDried,
         last_worn_at: new Date().toISOString(),
       })
       .eq("id", it.id);
+    // Audit trail (resilient — no-ops if bf_sock_log isn't there yet).
+    await supabase.from("bf_sock_log").insert({
+      sock_id: it.id,
+      event: "worn",
+      hours: h,
+      played: played ? 1 : 0,
+      dried: dried ? 1 : 0,
+      smell: estimateSmell(nHours, nPlayed, nDried),
+    });
     setHours("");
     setPlayed(false);
     setDried(false);
@@ -465,8 +491,30 @@ function ItemCard({
         last_washed_at: new Date().toISOString(),
       })
       .eq("id", it.id);
+    // wash_count + log are separate/resilient so washing works pre-migration.
+    await supabase
+      .from("bf_footwear")
+      .update({ wash_count: washCount + 1 })
+      .eq("id", it.id);
+    await supabase
+      .from("bf_sock_log")
+      .insert({ sock_id: it.id, event: "washed", smell: 0 });
     setBusy(false);
     await onChanged();
+  }
+
+  async function toggleAudit() {
+    const next = !auditOpen;
+    setAuditOpen(next);
+    if (next) {
+      const { data } = await supabase
+        .from("bf_sock_log")
+        .select("event, hours, smell, created_at")
+        .eq("sock_id", it.id)
+        .order("created_at", { ascending: false })
+        .limit(12);
+      setAudit((data ?? []) as typeof audit);
+    }
   }
 
   async function markBare() {
@@ -516,6 +564,11 @@ function ItemCard({
           <p className="mt-1 text-xs text-neutral-400">
             {wearBits.length ? wearBits.join(" · ") : "Fresh / clean"}
           </p>
+          {isSock && (
+            <p className="mt-0.5 text-xs text-neutral-400">
+              smell ~{currentSmell}/10 · washed {washCount}×
+            </p>
+          )}
         </div>
         <button
           onClick={onDelete}
@@ -542,6 +595,12 @@ function ItemCard({
             >
               Mark washed
             </button>
+            <button
+              onClick={toggleAudit}
+              className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              {auditOpen ? "Hide audit" : "Audit"}
+            </button>
           </>
         ) : (
           <button
@@ -567,6 +626,33 @@ function ItemCard({
           </button>
         )}
       </div>
+
+      {/* Sock audit history */}
+      {isSock && auditOpen && (
+        <div className="mt-3 rounded-lg border border-neutral-200 p-3 text-xs dark:border-neutral-800">
+          {audit.length === 0 ? (
+            <p className="text-neutral-400">
+              No history yet. Log wear or a wash to start the audit trail.
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {audit.map((a, i) => (
+                <li key={i} className="flex justify-between gap-3 text-neutral-500">
+                  <span>
+                    {a.created_at.slice(0, 10)} ·{" "}
+                    {a.event === "washed"
+                      ? "Washed"
+                      : `Worn${a.hours ? ` ${a.hours}h` : ""}`}
+                  </span>
+                  {a.event !== "washed" && a.smell != null && (
+                    <span className="tabular-nums">~{a.smell}/10</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Edit details */}
       {editing && (

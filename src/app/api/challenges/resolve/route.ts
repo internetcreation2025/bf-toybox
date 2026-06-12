@@ -124,15 +124,32 @@ export async function POST(request: Request) {
         .eq("id", id)
         .maybeSingle();
       if (!row) continue;
+      const nHours = (Number(row.worn_hours) || 0) + hours;
+      const nPlayed = (Number(row.played_count) || 0) + playedInc;
+      const nDried = (Number(row.dried_count) || 0) + driedInc;
       await supabase
         .from("bf_footwear")
         .update({
-          worn_hours: (Number(row.worn_hours) || 0) + hours,
-          played_count: (Number(row.played_count) || 0) + playedInc,
-          dried_count: (Number(row.dried_count) || 0) + driedInc,
+          worn_hours: nHours,
+          played_count: nPlayed,
+          dried_count: nDried,
           last_worn_at: new Date().toISOString(),
         })
         .eq("id", id);
+      // Audit trail (resilient — no-ops if bf_sock_log isn't there yet).
+      const smell = Math.max(
+        0,
+        Math.min(10, Math.round(nHours * 0.35 + nPlayed * 1.6 + nDried * 1.9))
+      );
+      await supabase.from("bf_sock_log").insert({
+        user_id: user.id,
+        sock_id: id,
+        event: "worn",
+        hours,
+        played: playedInc,
+        dried: driedInc,
+        smell,
+      });
     }
 
     // Shoe worn bare: bump the assigned shoe's sockless tally.
