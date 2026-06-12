@@ -25,10 +25,10 @@ const GAMES: Array<{
     ready: true,
   },
   {
-    href: "#",
+    href: "/games/match",
     title: "Spot your own foot",
-    blurb: "Your real foot among AI strangers. Coming soon.",
-    ready: false,
+    blurb: "Four extreme close-ups, one is yours. Pick it.",
+    ready: true,
   },
 ];
 

@@ -9,6 +9,7 @@ import { PERSONAS, DEFAULT_PERSONA, isPersonaKey } from "@/lib/decider";
 const GAME_LABELS: Record<string, string> = {
   smell: "the Smell-o-Meter — judging how ripe a sock is from its history",
   footwear: "Name That Footwear — identifying his own shoes from a tight close-up",
+  match: "Spot Your Own Foot — picking his real foot out of AI strangers",
 };
 
 export async function POST(request: Request) {
