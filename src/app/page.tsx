@@ -181,6 +181,11 @@ export default async function Home() {
       <p className="mt-10 text-center text-xs text-neutral-400">
         Roll for a verdict, complete it, keep the streak alive.
       </p>
+      <p className="mt-2 text-center text-xs text-neutral-400">
+        <Link href="/vision-test" className="hover:text-neutral-700 dark:hover:text-neutral-300">
+          Vision test
+        </Link>
+      </p>
     </main>
   );
 }
