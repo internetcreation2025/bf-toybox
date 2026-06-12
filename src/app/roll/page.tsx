@@ -50,8 +50,9 @@ export default function RollPage() {
     { label: "", activity: "", location: "" },
   ]);
 
-  const isComplete = (s: Slot) =>
-    !!(s.label.trim() && s.activity.trim() && s.location.trim());
+  // A block just needs a time and an activity — location is optional (the
+  // Decider falls back to your home base). Calendar events rarely carry a place.
+  const isComplete = (s: Slot) => !!(s.label.trim() && s.activity.trim());
   const isBlank = (s: Slot) =>
     !s.label.trim() && !s.activity.trim() && !s.location.trim();
 
@@ -287,7 +288,7 @@ export default function RollPage() {
                   <input
                     value={s.location}
                     onChange={(e) => updateSlot(i, { location: e.target.value })}
-                    placeholder="Location (e.g. Starbucks, town)"
+                    placeholder="Location (optional — e.g. Starbucks, town)"
                     className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
                   />
                 </div>
@@ -308,7 +309,7 @@ export default function RollPage() {
             onClick={() => setStep("footwear")}
             className="mt-4 w-full rounded-lg bg-neutral-900 px-4 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
           >
-            {scheduleComplete ? "Next" : "Fill in at least one full block to continue"}
+            {scheduleComplete ? "Next" : "Add a block with a time and activity to continue"}
           </button>
         </div>
       )}

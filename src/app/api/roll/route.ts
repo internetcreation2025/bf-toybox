@@ -175,12 +175,10 @@ export async function POST(request: Request) {
 
   if (
     schedule.length < 1 ||
-    schedule.some(
-      (s) => !s.label?.trim() || !s.activity?.trim() || !s.location?.trim()
-    )
+    schedule.some((s) => !s.label?.trim() || !s.activity?.trim())
   ) {
     return NextResponse.json(
-      { error: "Add at least one time block (time, activity and place)." },
+      { error: "Add at least one time block (time and activity)." },
       { status: 400 }
     );
   }
@@ -324,7 +322,12 @@ Persona — write ALL player-facing text in this voice: ${PERSONAS[persona].voic
 
 The owner's next 4 hours:
 ${schedule
-  .map((s, i) => `${i + 1}. ${s.label} — ${s.activity} @ ${s.location}`)
+  .map(
+    (s, i) =>
+      `${i + 1}. ${s.label} — ${s.activity}${
+        s.location?.trim() ? ` @ ${s.location.trim()}` : " (place not given — assume home base)"
+      }`
+  )
   .join("\n")}
 
 Footwear on hand right now (pick from these — use the wear state + dossier to choose well):
