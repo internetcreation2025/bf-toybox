@@ -11,6 +11,7 @@ type RefRow = {
   angle: string;
   photo_path: string;
   ai_fingerprint: string | null;
+  label: string | null;
 };
 
 export default function FeetPage() {
@@ -21,6 +22,9 @@ export default function FeetPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [detailLabel, setDetailLabel] = useState("");
+  const [detailBusy, setDetailBusy] = useState(false);
+  const detailInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const {
@@ -102,6 +106,58 @@ export default function FeetPage() {
     await load();
   }
 
+  // A labelled extreme close-up of a specific spot (e.g. "pad of toe 2, right").
+  async function handleAddDetail(label: string, file: File) {
+    if (!userId || !label.trim()) return;
+    setDetailBusy(true);
+    setError("");
+    try {
+      const blob = await resizeImage(file);
+      const fileId = crypto.randomUUID();
+      const path = `${userId}/feet/detail/${fileId}.jpg`;
+      const { error: upErr } = await supabase.storage
+        .from("bf-feet")
+        .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+      if (upErr) throw upErr;
+
+      const { data: inserted, error: insErr } = await supabase
+        .from("bf_foot_refs")
+        .insert({
+          user_id: userId,
+          angle: "detail",
+          label: label.trim(),
+          photo_path: path,
+          ai_fingerprint: null,
+        })
+        .select("id")
+        .single();
+      if (insErr || !inserted) {
+        throw new Error(
+          insErr?.message?.includes("duplicate") ||
+          insErr?.message?.includes("label")
+            ? "Run the detail close-ups SQL first."
+            : insErr?.message ?? "Could not save"
+        );
+      }
+
+      const res = await fetch("/api/feet/fingerprint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: inserted.id }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error || "fingerprint failed");
+      }
+      setDetailLabel("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setDetailBusy(false);
+    }
+  }
+
   const learnedAngles = FOOT_ANGLES.filter((a) =>
     (rowsByAngle[a.key] ?? []).some((r) => r.ai_fingerprint)
   ).length;
@@ -109,6 +165,7 @@ export default function FeetPage() {
     (n, rows) => n + rows.length,
     0
   );
+  const details = rowsByAngle["detail"] ?? [];
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -153,6 +210,83 @@ export default function FeetPage() {
           />
         ))}
       </div>
+
+      {/* Detail close-ups — labelled landmarks */}
+      <section className="mt-10">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Detail close-ups
+        </h2>
+        <p className="mt-1 text-sm text-neutral-500">
+          Extreme close-ups of specific spots — label each precisely (e.g. “pad
+          of toe 2, right foot”). The Decider learns these as named landmarks it
+          can demand, verify and roast.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <input
+            value={detailLabel}
+            onChange={(e) => setDetailLabel(e.target.value)}
+            placeholder='Label, e.g. "between little toe & toe 4, right"'
+            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+          <button
+            type="button"
+            disabled={!detailLabel.trim() || detailBusy}
+            onClick={() => detailInputRef.current?.click()}
+            className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+          >
+            {detailBusy ? "Adding…" : "Add photo"}
+          </button>
+          <input
+            ref={detailInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleAddDetail(detailLabel, f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {details.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {details.map((r) => (
+              <div key={r.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => urls[r.id] && setLightbox(urls[r.id])}
+                  className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950"
+                >
+                  {urls[r.id] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={urls[r.id]}
+                      alt={r.label ?? "detail"}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-xs text-neutral-400">…</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(r)}
+                  aria-label="Remove"
+                  className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  ×
+                </button>
+                <p className="mt-1 text-xs text-neutral-500">
+                  {r.label}
+                  {!r.ai_fingerprint && " · analysing"}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {lightbox && (
         <div

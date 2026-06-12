@@ -222,6 +222,15 @@ export async function POST(request: Request) {
     .order("created_at", { ascending: false })
     .limit(8);
 
+  // Labelled foot landmarks — specific spots he's given reference close-ups of.
+  const { data: landmarkRows } = await supabase
+    .from("bf_foot_refs")
+    .select("label")
+    .not("label", "is", null);
+  const landmarks = (landmarkRows ?? [])
+    .map((r) => (r.label as string | null)?.trim())
+    .filter((x): x is string => !!x);
+
   // The Roaster's "file": close-ups it demanded earlier and has on record.
   const isRoaster = persona === "roaster";
   const { data: galleryRows } = isRoaster
@@ -356,6 +365,11 @@ ${
     ? `YOUR FILE ON MIKE — close-ups you demanded earlier and keep on record. Reference these to needle him and to decide what's worth adding: ${filedShots
         .map((g) => `"${g.prompt}" — ${g.note}`)
         .join(" | ")}`
+    : ""
+}
+${
+  landmarks.length
+    ? `KNOWN FOOT LANDMARKS — you hold labelled reference close-ups of these exact spots on his feet. You may name them specifically, demand a fresh close-up of one as proof or for the file, and target foot-care there: ${landmarks.join("; ")}`
     : ""
 }
 ${smell !== null ? `Current footwear/sock smell index the owner reports: ${smell}/10.` : ""}

@@ -83,8 +83,11 @@ export async function POST(request: Request) {
             },
             {
               type: "text",
-              text: `This is a reference photo of the owner's own foot. Angle: "${angle}".
-Write a concise but detailed visual fingerprint to later match new photos to this same foot.
+              text: `${
+                ref.label
+                  ? `This is an EXTREME close-up of one specific spot on the owner's foot: "${ref.label}". Write a concise but detailed visual fingerprint of THIS EXACT SPOT, to later recognise it again.`
+                  : `This is a reference photo of the owner's own foot. Angle: "${ref.angle}". Write a concise but detailed visual fingerprint to later match new photos to this same foot.`
+              }
 Focus ONLY on stable, identifying features — ignore lighting, background, and pose:
 - relative toe lengths / ordering
 - toenail shape and any distinctive nails

@@ -143,7 +143,7 @@ export async function POST(request: Request) {
   // images that show the tops of the feet.
   const { data: refs } = await supabase
     .from("bf_foot_refs")
-    .select("angle, photo_path, ai_fingerprint");
+    .select("angle, photo_path, ai_fingerprint, label");
 
   const fingerprintRows = (refs ?? []).filter((r) => r.ai_fingerprint?.trim());
   if (fingerprintRows.length === 0) {
@@ -159,8 +159,11 @@ export async function POST(request: Request) {
   // With several photos per angle this list can grow; cap it so the prompt
   // stays sane.
   const fingerprintText = fingerprintRows
-    .slice(0, 8)
-    .map((r) => `Angle "${r.angle}":\n${r.ai_fingerprint}`)
+    .slice(0, 10)
+    .map(
+      (r) =>
+        `${r.label ? `Spot "${r.label}"` : `Angle "${r.angle}"`}:\n${r.ai_fingerprint}`
+    )
     .join("\n\n");
 
   // Pick up to 3 reference images, preferring top-of-foot angles.
