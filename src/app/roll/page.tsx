@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { type Rarity } from "@/lib/decider";
+import { listEventsForDay } from "@/lib/gcal";
 import { VerdictCard } from "@/components/VerdictCard";
 
 type Slot = { label: string; activity: string; location: string };
@@ -68,6 +69,41 @@ export default function RollPage() {
   }
   function removeSlot(i: number) {
     setSlots((prev) => prev.filter((_, j) => j !== i));
+  }
+
+  // ── Google Calendar pull ──
+  const [gcalBusy, setGcalBusy] = useState(false);
+  const [gcalMsg, setGcalMsg] = useState("");
+
+  function fmtTime(iso: string): string {
+    return new Date(iso).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  async function pullCalendar() {
+    setGcalBusy(true);
+    setGcalMsg("");
+    try {
+      const events = await listEventsForDay(date);
+      if (events.length === 0) {
+        setGcalMsg("No timed events found on your calendar that day.");
+        return;
+      }
+      setSlots(
+        events.map((e) => ({
+          label: `${fmtTime(e.startIso)}–${fmtTime(e.endIso)}`,
+          activity: e.summary,
+          location: e.location,
+        }))
+      );
+      setGcalMsg(`Pulled ${events.length} event(s) — tweak them, then continue.`);
+    } catch (e) {
+      setGcalMsg(e instanceof Error ? e.message : "Calendar pull failed.");
+    } finally {
+      setGcalBusy(false);
+    }
   }
 
   // ── optional free-text context for the Decider ──
@@ -204,6 +240,18 @@ export default function RollPage() {
               />
             </label>
           </div>
+
+          <button
+            type="button"
+            onClick={pullCalendar}
+            disabled={gcalBusy}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          >
+            {gcalBusy ? "Reading your calendar…" : "Pull from Google Calendar"}
+          </button>
+          {gcalMsg && (
+            <p className="mt-2 text-xs text-neutral-500">{gcalMsg}</p>
+          )}
 
           <div className="mt-4 space-y-3">
             {slots.map((s, i) => (
