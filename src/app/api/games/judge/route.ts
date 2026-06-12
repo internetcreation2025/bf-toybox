@@ -10,6 +10,7 @@ const GAME_LABELS: Record<string, string> = {
   smell: "the Smell-o-Meter — judging how ripe a sock is from its history",
   footwear: "Name That Footwear — identifying his own shoes from a tight close-up",
   match: "Spot Your Own Foot — picking his real foot out of AI strangers",
+  part: "Name the Part — identifying which labelled spot of his own foot a close-up shows",
 };
 
 export async function POST(request: Request) {

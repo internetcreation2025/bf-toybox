@@ -12,6 +12,7 @@ type RefRow = {
   photo_path: string;
   ai_fingerprint: string | null;
   label: string | null;
+  created_at: string;
 };
 
 export default function FeetPage() {
@@ -25,6 +26,7 @@ export default function FeetPage() {
   const [detailLabel, setDetailLabel] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const detailInputRef = useRef<HTMLInputElement>(null);
+  const pendingLabelRef = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     const {
@@ -166,6 +168,14 @@ export default function FeetPage() {
     0
   );
   const details = rowsByAngle["detail"] ?? [];
+  // Group the detail close-ups by label into per-spot timelines (oldest first).
+  const detailGroups = Object.values(
+    details.reduce<Record<string, RefRow[]>>((acc, r) => {
+      const k = r.label ?? "—";
+      (acc[k] ??= []).push(r);
+      return acc;
+    }, {})
+  ).sort((a, b) => (a[0].label ?? "").localeCompare(b[0].label ?? ""));
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -211,28 +221,33 @@ export default function FeetPage() {
         ))}
       </div>
 
-      {/* Detail close-ups — labelled landmarks */}
+      {/* Detail close-ups — labelled landmarks, grouped into per-spot timelines */}
       <section className="mt-10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Detail close-ups
         </h2>
         <p className="mt-1 text-sm text-neutral-500">
           Extreme close-ups of specific spots — label each precisely (e.g. “pad
-          of toe 2, right foot”). The Decider learns these as named landmarks it
-          can refer to specifically, request fresh shots of, and verify.
+          of toe 2, right foot”). Each spot keeps a dated series, so you can
+          watch it change over time. The Decider can refer to a spot, request a
+          fresh shot of it, and verify it.
         </p>
 
+        {/* Add a NEW spot */}
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
           <input
             value={detailLabel}
             onChange={(e) => setDetailLabel(e.target.value)}
-            placeholder='Label, e.g. "between little toe & toe 4, right"'
+            placeholder='New spot, e.g. "between little toe & toe 4, right"'
             className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
           <button
             type="button"
             disabled={!detailLabel.trim() || detailBusy}
-            onClick={() => detailInputRef.current?.click()}
+            onClick={() => {
+              pendingLabelRef.current = null;
+              detailInputRef.current?.click();
+            }}
             className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
           >
             {detailBusy ? "Adding…" : "Add photo"}
@@ -244,48 +259,73 @@ export default function FeetPage() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) handleAddDetail(detailLabel, f);
+              const lbl = pendingLabelRef.current ?? detailLabel;
+              if (f && lbl.trim()) handleAddDetail(lbl, f);
+              pendingLabelRef.current = null;
               e.target.value = "";
             }}
           />
         </div>
 
-        {details.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {details.map((r) => (
-              <div key={r.id} className="group relative">
+        {/* Existing spots, each a dated timeline */}
+        {detailGroups.map((rows) => {
+          const label = rows[0].label ?? "—";
+          return (
+            <div
+              key={label}
+              className="mt-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">{label}</p>
                 <button
                   type="button"
-                  onClick={() => urls[r.id] && setLightbox(urls[r.id])}
-                  className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950"
+                  disabled={detailBusy}
+                  onClick={() => {
+                    pendingLabelRef.current = label;
+                    detailInputRef.current?.click();
+                  }}
+                  className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
                 >
-                  {urls[r.id] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={urls[r.id]}
-                      alt={r.label ?? "detail"}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-xs text-neutral-400">…</span>
-                  )}
+                  + Add to this spot
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(r)}
-                  aria-label="Remove"
-                  className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  ×
-                </button>
-                <p className="mt-1 text-xs text-neutral-500">
-                  {r.label}
-                  {!r.ai_fingerprint && " · analysing"}
-                </p>
               </div>
-            ))}
-          </div>
-        )}
+              <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {rows.map((r) => (
+                  <div key={r.id} className="group relative">
+                    <button
+                      type="button"
+                      onClick={() => urls[r.id] && setLightbox(urls[r.id])}
+                      className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950"
+                    >
+                      {urls[r.id] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={urls[r.id]}
+                          alt={label}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-neutral-400">…</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r)}
+                      aria-label="Remove"
+                      className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      ×
+                    </button>
+                    <p className="mt-1 text-center text-[10px] text-neutral-400">
+                      {r.created_at.slice(0, 10)}
+                      {!r.ai_fingerprint && " ·…"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {lightbox && (

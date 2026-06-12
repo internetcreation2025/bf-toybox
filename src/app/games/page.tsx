@@ -30,6 +30,12 @@ const GAMES: Array<{
     blurb: "Four extreme close-ups, one is yours. Pick it.",
     ready: true,
   },
+  {
+    href: "/games/part",
+    title: "Name the part",
+    blurb: "A close-up of one of your labelled spots — which is it?",
+    ready: true,
+  },
 ];
 
 export default function GamesPage() {
