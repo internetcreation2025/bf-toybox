@@ -13,6 +13,7 @@ import {
   type Rarity,
   type Dossier,
   type FootwearForRoll,
+  type PlanStep,
 } from "@/lib/decider";
 
 type Slot = { label: string; activity: string; location: string };
@@ -23,6 +24,9 @@ type DiaryTask = { task: string; on: string };
 type Authored = {
   instruction: string;
   flavor: string;
+  plan: PlanStep[];
+  before: string;
+  carryover: string;
   proof_elements: string[];
   prep_tasks: string[];
   diary_tasks: DiaryTask[];
@@ -73,6 +77,24 @@ function parseAuthored(text: string, fallback: Authored): Authored {
           ? json.instruction.trim()
           : fallback.instruction,
       flavor: typeof json.flavor === "string" ? json.flavor.trim() : fallback.flavor,
+      plan: Array.isArray(json.plan)
+        ? (json.plan as Array<Record<string, unknown>>)
+            .filter((s) => typeof s?.do === "string" && (s.do as string).trim())
+            .map((s) => ({
+              when: typeof s.when === "string" ? s.when.trim() : "",
+              activity: typeof s.activity === "string" ? s.activity.trim() : "",
+              do: (s.do as string).trim(),
+              after:
+                typeof s.after === "string" && s.after.trim()
+                  ? s.after.trim()
+                  : undefined,
+              headline: s.headline === true,
+            }))
+            .slice(0, 12)
+        : fallback.plan,
+      before: typeof json.before === "string" ? json.before.trim() : fallback.before,
+      carryover:
+        typeof json.carryover === "string" ? json.carryover.trim() : fallback.carryover,
       proof_elements: Array.isArray(json.proof_elements)
         ? json.proof_elements.filter((x): x is string => typeof x === "string")
         : fallback.proof_elements,
@@ -150,6 +172,8 @@ export async function POST(request: Request) {
     weatherLocation?: string;
     doubleOrNothing?: boolean;
     sealMinutes?: number;
+    nowLabel?: string;
+    clientToday?: string;
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
@@ -271,6 +295,25 @@ export async function POST(request: Request) {
       : actualIso;
   const today = humanDate(todayIso);
 
+  // Time awareness: compare the schedule's date (and, if it's today, the current
+  // clock time) against now, so the Decider knows what's done, in play, or still
+  // ahead and prescribes accordingly.
+  const clientToday =
+    typeof body.clientToday === "string" && ISO_DATE.test(body.clientToday)
+      ? body.clientToday
+      : actualIso;
+  const nowLabel = (body.nowLabel ?? "").toString().trim().slice(0, 60);
+  let timeContext: string;
+  if (todayIso === clientToday) {
+    timeContext = nowLabel
+      ? `TIME AWARENESS — right now it is ${nowLabel}. Compare each block's time against now: blocks earlier than now have ALREADY HAPPENED — treat them as context / carry-over and do NOT prescribe footwear for a block that has passed; the block spanning now is IN PLAY; put your actual prescriptions on what is happening now and still to come. If the whole day is already behind him, make it a wrap-up for the rest of the evening.`
+      : `TIME AWARENESS — this schedule is for TODAY; weight your prescriptions toward what is still ahead.`;
+  } else if (todayIso > clientToday) {
+    timeContext = `TIME AWARENESS — this schedule is for a FUTURE day; the whole day is still ahead, so plan it from the start.`;
+  } else {
+    timeContext = `TIME AWARENESS — this schedule is for a PAST day; treat it as a retrospective record rather than live instructions.`;
+  }
+
   // If a competitive game is on the schedule, set a follow-up so a later
   // session asks how it went (dedup on sport + date).
   const sport = detectSport(schedule);
@@ -330,6 +373,8 @@ ${schedule
   )
   .join("\n")}
 
+${timeContext}
+
 Footwear on hand right now (pick from these — use the wear state + dossier to choose well):
 ${footwearLines.join("\n")}
 ${
@@ -385,10 +430,17 @@ Today's date: ${today} (ISO ${todayIso})
 Rolled rarity: ${rarity.toUpperCase()}. Tier directive: ${brief.guide}
 Verdict type: ${brief.verdictType}. Photo proof required: ${brief.proofRequired}
 
+BUILD A CHRONOLOGICAL DAY PLAN — do NOT collapse the day into a single moment. Walk his schedule IN ORDER, one step per block, covering EVERY block (even mundane ones, briefly). For each block say what to wear (name the specific [F#] footwear AND socks, or sockless) and how to prep for it, and in "after" what to do with his feet/socks straight afterwards to hand over into the next block — thread the CARRY-OVER through the day (e.g. keep the damp padel socks bagged, slip shoes on sockless for the drive, bring them in at the end). Mark ONE block (occasionally two) with "headline": true — the standout/bonus moment that carries the rolled tier's daringness; any photo proof is about that headline moment. The "instruction" field should summarise that headline moment in one or two sentences (it's what shows in the archive and on the proof screen).
+
 Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
 {
-  "instruction": "one or two concrete sentences telling them what to do with their feet, tied to the actual schedule",
-  "flavor": "one short punchy line in the persona voice",
+  "instruction": "one or two sentences summarising the standout/headline moment of the plan (used in the archive + proof screen)",
+  "flavor": "one short punchy line in the persona voice, the theme of the whole day",
+  "before": "anything to prepare BEFORE the day starts, or carried over from earlier (e.g. socks you bagged last week) — empty string if none",
+  "plan": [
+    { "when": "time label for this block, e.g. 1–2pm", "activity": "the activity and place", "do": "what to wear (name specific [F#] items + socks, or sockless) and how to prep for it", "after": "what to do with feet/socks straight after this block to set up the next — keep/air/bag/change/carry; omit the key if nothing", "headline": false }
+  ],
+  "carryover": "the through-line carried across the whole day and how it ends — empty string if none",
   "proof_elements": ${
     brief.proofRequired
       ? `["2 to 5 specific things that must appear in the proof photo — include the bare feet, an object proving the location/context, and today's date (${today}) written on the foot in pen; state the expected foot condition (clean, or slightly dirty/sweaty); and if the dare hinges on condition, wear or smell, require a clear CLOSE-UP that shows it"]`
@@ -409,6 +461,9 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   const fallback: Authored = {
     instruction: brief.guide,
     flavor: "",
+    plan: [],
+    before: "",
+    carryover: "",
     proof_elements: [],
     prep_tasks: [],
     diary_tasks: [],
@@ -420,7 +475,7 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   try {
     const msg = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 700,
+      max_tokens: 1500,
       messages: [{ role: "user", content: prompt }],
     });
     const text = msg.content
@@ -453,6 +508,17 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
       ? { items: wearItems, sockless: authored.sockless }
       : null;
 
+  // The chronological day plan (stored separately so the card can re-render it
+  // later, e.g. from a sealed envelope or the archive).
+  const planJson =
+    authored.plan.length || authored.before || authored.carryover
+      ? {
+          steps: authored.plan,
+          before: authored.before,
+          carryover: authored.carryover,
+        }
+      : null;
+
   const baseRow = {
     user_id: user.id,
     schedule_json: schedule,
@@ -467,24 +533,25 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     sealed_until: sealedUntil,
   };
 
-  // Try to store the wear picks; if the wear_json column isn't there yet
-  // (migration not run), fall back so the roll still works.
+  // Try to store the wear picks + day plan; if those columns aren't there yet
+  // (migration not run), fall back step by step so the roll still works.
   let inserted: { id: string } | null = null;
   {
-    const { data, error } = await supabase
-      .from("bf_challenges")
-      .insert({ ...baseRow, wear_json: wearJson })
-      .select("id")
-      .single();
-    if (error) {
-      const { data: data2 } = await supabase
+    const attempts = [
+      { ...baseRow, wear_json: wearJson, plan_json: planJson },
+      { ...baseRow, wear_json: wearJson },
+      baseRow,
+    ];
+    for (const payload of attempts) {
+      const { data, error } = await supabase
         .from("bf_challenges")
-        .insert(baseRow)
+        .insert(payload)
         .select("id")
         .single();
-      inserted = data2;
-    } else {
-      inserted = data;
+      if (!error && data) {
+        inserted = data;
+        break;
+      }
     }
   }
 
@@ -544,6 +611,9 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     verdictType: brief.verdictType,
     instruction: authored.instruction,
     flavor: authored.flavor,
+    plan: authored.plan,
+    before: authored.before,
+    carryover: authored.carryover,
     proofRequired: brief.proofRequired,
     proofElements: authored.proof_elements,
     today,

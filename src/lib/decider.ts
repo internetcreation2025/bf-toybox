@@ -145,6 +145,16 @@ SOCK LIFECYCLE — each sock sits at a stage of its life and the line may flag i
 
 SAFETY, HEALTH & TASTE — dares must be physically safe, legal, and not alarm or involve other people. Hygiene limits are his own comfort with his own feet and footwear; never involve anyone else. Never set anything that risks injury, infection, or public indecency. If his notes or any proof close-up show pain, a blister, a cut, raw or broken skin, or signs of athlete's foot or other infection, ease right off the daring — switch to gentle foot care (clean, dry, rest, moisturise) and, if it looks like it needs it, suggest he see a pharmacist or doctor rather than pushing a dare. Keep it doable.`;
 
+// ─── Chronological day plan ──────────────────────────────────────────────────
+// One step per schedule block: what to wear/prep, and what to do straight after.
+export type PlanStep = {
+  when: string; // time label, e.g. "1–2pm"
+  activity: string; // activity + place
+  do: string; // what to wear / how to prep for it
+  after?: string; // what to do with feet/socks straight after (carry, air, change)
+  headline?: boolean; // the standout/bonus moment that carries the tier's daringness
+};
+
 // ─── Footwear dossier + wear state ───────────────────────────────────────────
 // The AI profile Claude writes from a footwear photo, stored on bf_footwear.dossier.
 export type Dossier = {

@@ -49,6 +49,10 @@ export async function POST(request: Request) {
   }
 
   const proofRequired = Array.isArray(ch.proof_required_json);
+  const planJson = ch.plan_json as
+    | { steps?: unknown; before?: unknown; carryover?: unknown }
+    | null
+    | undefined;
   console.log("[envelope/open] opened", ch.rarity);
   return NextResponse.json({
     id: ch.id,
@@ -56,6 +60,9 @@ export async function POST(request: Request) {
     verdictType: ch.verdict_type,
     instruction: ch.instruction,
     flavor: ch.flavor,
+    plan: Array.isArray(planJson?.steps) ? planJson!.steps : [],
+    before: typeof planJson?.before === "string" ? planJson.before : "",
+    carryover: typeof planJson?.carryover === "string" ? planJson.carryover : "",
     proofRequired,
     proofElements: proofRequired ? ch.proof_required_json : [],
   });

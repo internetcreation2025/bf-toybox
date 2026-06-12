@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { type Rarity } from "@/lib/decider";
+import { type Rarity, type PlanStep } from "@/lib/decider";
 import { listEventsForDay } from "@/lib/gcal";
 import { VerdictCard } from "@/components/VerdictCard";
 
@@ -17,6 +17,9 @@ type RollResult = {
   verdictType: "wear" | "dare";
   instruction: string;
   flavor: string;
+  plan?: PlanStep[];
+  before?: string;
+  carryover?: string;
   proofRequired: boolean;
   proofElements: string[];
   today: string;
@@ -177,6 +180,12 @@ export default function RollPage() {
           weatherLocation: weatherLocation.trim() || undefined,
           doubleOrNothing: !!opts.doubleOrNothing,
           sealMinutes: opts.sealMinutes ?? 0,
+          nowLabel: new Date().toLocaleString([], {
+            weekday: "long",
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+          clientToday: todayIso,
         }),
       });
       const json = await res.json();
