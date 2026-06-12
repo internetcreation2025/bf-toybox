@@ -16,7 +16,7 @@ type RefRow = {
 export default function FeetPage() {
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
-  const [refs, setRefs] = useState<Record<string, RefRow>>({});
+  const [rowsByAngle, setRowsByAngle] = useState<Record<string, RefRow[]>>({});
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -29,17 +29,21 @@ export default function FeetPage() {
     if (!user) return;
     setUserId(user.id);
 
-    const { data } = await supabase.from("bf_foot_refs").select("*");
-    const byAngle: Record<string, RefRow> = {};
+    const { data } = await supabase
+      .from("bf_foot_refs")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    const grouped: Record<string, RefRow[]> = {};
     const signed: Record<string, string> = {};
     for (const r of (data ?? []) as RefRow[]) {
-      byAngle[r.angle] = r;
+      (grouped[r.angle] ??= []).push(r);
       const { data: s } = await supabase.storage
         .from("bf-feet")
         .createSignedUrl(r.photo_path, 3600);
-      if (s?.signedUrl) signed[r.angle] = s.signedUrl;
+      if (s?.signedUrl) signed[r.id] = s.signedUrl;
     }
-    setRefs(byAngle);
+    setRowsByAngle(grouped);
     setUrls(signed);
   }, [supabase]);
 
@@ -53,23 +57,31 @@ export default function FeetPage() {
     setError("");
     try {
       const blob = await resizeImage(file);
-      const path = `${userId}/feet/${angle}.jpg`;
+      const fileId = crypto.randomUUID();
+      const path = `${userId}/feet/${angle}/${fileId}.jpg`;
 
       const { error: upErr } = await supabase.storage
         .from("bf-feet")
         .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
       if (upErr) throw upErr;
 
-      const { error: rowErr } = await supabase.from("bf_foot_refs").upsert(
-        { user_id: userId, angle, photo_path: path, ai_fingerprint: null },
-        { onConflict: "user_id,angle" }
-      );
-      if (rowErr) throw rowErr;
+      const { data: inserted, error: insErr } = await supabase
+        .from("bf_foot_refs")
+        .insert({ user_id: userId, angle, photo_path: path, ai_fingerprint: null })
+        .select("id")
+        .single();
+      if (insErr || !inserted) {
+        throw new Error(
+          insErr?.message?.includes("duplicate")
+            ? "Run the multi-photo SQL first to allow more than one per angle."
+            : insErr?.message ?? "Could not save"
+        );
+      }
 
       const res = await fetch("/api/feet/fingerprint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ angle }),
+        body: JSON.stringify({ id: inserted.id }),
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
@@ -83,9 +95,20 @@ export default function FeetPage() {
     }
   }
 
-  const learnedCount = Object.values(refs).filter(
-    (r) => r.ai_fingerprint
+  async function handleDelete(row: RefRow) {
+    if (!confirm("Remove this photo?")) return;
+    await supabase.storage.from("bf-feet").remove([row.photo_path]);
+    await supabase.from("bf_foot_refs").delete().eq("id", row.id);
+    await load();
+  }
+
+  const learnedAngles = FOOT_ANGLES.filter((a) =>
+    (rowsByAngle[a.key] ?? []).some((r) => r.ai_fingerprint)
   ).length;
+  const totalPhotos = Object.values(rowsByAngle).reduce(
+    (n, rows) => n + rows.length,
+    0
+  );
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -101,12 +124,12 @@ export default function FeetPage() {
             Teach it my feet
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Upload one clean, barefoot photo per angle. Each is analysed and
-            remembered so proof photos can be matched later.
+            Add as many photos per angle as you like — the more it sees, the
+            better it knows your feet, and the more material the games have.
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1 text-sm text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
-          {learnedCount}/{FOOT_ANGLES.length} learned
+          {learnedAngles}/{FOOT_ANGLES.length} angles · {totalPhotos} photos
         </span>
       </div>
 
@@ -121,16 +144,16 @@ export default function FeetPage() {
           <AngleCard
             key={a.key}
             label={a.label}
-            url={urls[a.key]}
-            ref_={refs[a.key]}
+            rows={rowsByAngle[a.key] ?? []}
+            urls={urls}
             busy={busy === a.key}
             onView={setLightbox}
+            onDelete={handleDelete}
             onPick={(file) => handleUpload(a.key, file)}
           />
         ))}
       </div>
 
-      {/* Full-size photo viewer */}
       {lightbox && (
         <div
           onClick={() => setLightbox(null)}
@@ -150,56 +173,70 @@ export default function FeetPage() {
 
 function AngleCard({
   label,
-  url,
-  ref_,
+  rows,
+  urls,
   busy,
   onView,
+  onDelete,
   onPick,
 }: {
   label: string;
-  url?: string;
-  ref_?: RefRow;
+  rows: RefRow[];
+  urls: Record<string, string>;
   busy: boolean;
   onView: (url: string) => void;
+  onDelete: (row: RefRow) => void;
   onPick: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const learned = !!ref_?.ai_fingerprint;
-  const uploaded = !!ref_;
+  const learned = rows.some((r) => r.ai_fingerprint);
 
   return (
     <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="flex items-center justify-between">
         <span className="font-medium">{label}</span>
-        <StatusDot busy={busy} uploaded={uploaded} learned={learned} />
+        <StatusDot busy={busy} count={rows.length} learned={learned} />
       </div>
 
-      {url ? (
-        // Tap the photo to expand it. The image shows in full (no crop).
-        <button
-          type="button"
-          onClick={() => onView(url)}
-          disabled={busy}
-          aria-label={`View ${label} larger`}
-          className="mt-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 disabled:opacity-60 dark:border-neutral-800 dark:bg-neutral-950"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
-            alt={label}
-            className="max-h-full max-w-full object-contain"
-          />
-        </button>
-      ) : (
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {rows.map((r) => (
+          <div key={r.id} className="group relative">
+            <button
+              type="button"
+              onClick={() => urls[r.id] && onView(urls[r.id])}
+              className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950"
+            >
+              {urls[r.id] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={urls[r.id]}
+                  alt={label}
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <span className="text-xs text-neutral-400">…</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(r)}
+              aria-label="Remove photo"
+              className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="mt-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-sm text-neutral-400 transition-colors hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950"
+          className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400 hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700"
         >
-          <span>Tap to add photo</span>
+          {busy ? "…" : "+ Add"}
         </button>
-      )}
+      </div>
 
       <input
         ref={inputRef}
@@ -213,55 +250,32 @@ function AngleCard({
         }}
       />
 
-      {url && !busy && (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="mt-2 text-xs text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
-        >
-          Replace photo
-        </button>
-      )}
-
-      {busy && (
-        <p className="mt-2 text-xs text-neutral-500">Analysing…</p>
-      )}
-
-      {learned && (
-        <details className="mt-2">
-          <summary className="cursor-pointer text-xs text-neutral-500">
-            View fingerprint
-          </summary>
-          <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-neutral-50 p-3 text-xs text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
-            {ref_?.ai_fingerprint}
-          </pre>
-        </details>
-      )}
+      {busy && <p className="mt-2 text-xs text-neutral-500">Analysing…</p>}
     </div>
   );
 }
 
 function StatusDot({
   busy,
-  uploaded,
+  count,
   learned,
 }: {
   busy: boolean;
-  uploaded: boolean;
+  count: number;
   learned: boolean;
 }) {
   const colour = busy
     ? "bg-amber-500"
     : learned
     ? "bg-green-500"
-    : uploaded
+    : count > 0
     ? "bg-amber-500"
     : "bg-neutral-300 dark:bg-neutral-700";
   const text = busy
     ? "Analysing"
     : learned
-    ? "Learned"
-    : uploaded
+    ? `Learned · ${count}`
+    : count > 0
     ? "Not analysed"
     : "Empty";
   return (

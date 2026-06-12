@@ -156,7 +156,10 @@ export async function POST(request: Request) {
     );
   }
 
+  // With several photos per angle this list can grow; cap it so the prompt
+  // stays sane.
   const fingerprintText = fingerprintRows
+    .slice(0, 8)
     .map((r) => `Angle "${r.angle}":\n${r.ai_fingerprint}`)
     .join("\n\n");
 

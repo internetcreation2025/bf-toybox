@@ -23,16 +23,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const { angle } = (await request.json()) as { angle?: string };
-  if (!angle) {
-    return NextResponse.json({ error: "angle required" }, { status: 400 });
+  // Accept a specific photo id (multiple photos per angle now); fall back to
+  // angle for older callers (uses the most recent photo for that angle).
+  const { id, angle } = (await request.json()) as {
+    id?: string;
+    angle?: string;
+  };
+  if (!id && !angle) {
+    return NextResponse.json({ error: "id or angle required" }, { status: 400 });
   }
 
-  const { data: ref, error: refErr } = await supabase
-    .from("bf_foot_refs")
-    .select("*")
-    .eq("angle", angle)
-    .single();
+  const query = supabase.from("bf_foot_refs").select("*");
+  const { data: ref, error: refErr } = id
+    ? await query.eq("id", id).single()
+    : await query
+        .eq("angle", angle as string)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
   if (refErr || !ref) {
     return NextResponse.json({ error: "reference not found" }, { status: 404 });
   }
