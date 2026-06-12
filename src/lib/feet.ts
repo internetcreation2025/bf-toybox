@@ -7,7 +7,9 @@ export const FOOT_ANGLES = [
   { key: "side_left", label: "Left foot — outer side" },
   { key: "side_right", label: "Right foot — outer side" },
   { key: "both_above", label: "Both feet from above" },
-  { key: "heels", label: "Heels from behind" },
+  { key: "heel_left", label: "Left heel from behind" },
+  { key: "heel_right", label: "Right heel from behind" },
+  { key: "heels", label: "Both heels from behind" },
 ] as const;
 
 export type FootAngleKey = (typeof FOOT_ANGLES)[number]["key"];
