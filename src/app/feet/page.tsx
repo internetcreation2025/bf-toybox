@@ -219,7 +219,7 @@ export default function FeetPage() {
         <p className="mt-1 text-sm text-neutral-500">
           Extreme close-ups of specific spots — label each precisely (e.g. “pad
           of toe 2, right foot”). The Decider learns these as named landmarks it
-          can demand, verify and roast.
+          can refer to specifically, request fresh shots of, and verify.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
