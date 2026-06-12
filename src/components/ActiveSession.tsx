@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { RARITY_META, type Rarity } from "@/lib/decider";
+import { RARITY_META, type Rarity, type PlanStep } from "@/lib/decider";
+import { PlanTimeline } from "@/components/PlanTimeline";
 
 type WearItem = { id: string; name: string; category?: string };
+type Slot = { label: string; activity: string; location: string };
 
 export type ActiveChallenge = {
   id: string;
@@ -39,6 +41,88 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const [hours, setHours] = useState("");
   const [played, setPlayed] = useState(false);
   const [dried, setDried] = useState(false);
+
+  // The chronological plan + the schedule behind it, so it can be shown and
+  // edited while the roll is in play.
+  const [plan, setPlan] = useState<PlanStep[]>([]);
+  const [before, setBefore] = useState("");
+  const [carryover, setCarryover] = useState("");
+  const [schedule, setSchedule] = useState<Slot[]>([]);
+  const [editingSchedule, setEditingSchedule] = useState(false);
+  const [amending, setAmending] = useState(false);
+
+  const loadPlan = useCallback(async () => {
+    // schedule_json always exists; plan_json may not pre-migration, so read it
+    // defensively and fall back.
+    const { data: schedRow } = await supabase
+      .from("bf_challenges")
+      .select("schedule_json")
+      .eq("id", challenge.id)
+      .maybeSingle();
+    setSchedule(((schedRow?.schedule_json as Slot[] | null) ?? []).map((s) => ({
+      label: s.label ?? "",
+      activity: s.activity ?? "",
+      location: s.location ?? "",
+    })));
+
+    const { data: planRow } = await supabase
+      .from("bf_challenges")
+      .select("plan_json")
+      .eq("id", challenge.id)
+      .maybeSingle();
+    const pj = (planRow?.plan_json ?? null) as {
+      steps?: PlanStep[];
+      before?: string;
+      carryover?: string;
+    } | null;
+    setPlan(Array.isArray(pj?.steps) ? pj!.steps : []);
+    setBefore(typeof pj?.before === "string" ? pj.before : "");
+    setCarryover(typeof pj?.carryover === "string" ? pj.carryover : "");
+  }, [supabase, challenge.id]);
+
+  useEffect(() => {
+    loadPlan();
+  }, [loadPlan]);
+
+  function updateBlock(i: number, patch: Partial<Slot>) {
+    setSchedule((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  }
+  function addBlock() {
+    setSchedule((prev) => [...prev, { label: "", activity: "", location: "" }]);
+  }
+  function removeBlock(i: number) {
+    setSchedule((prev) => prev.filter((_, j) => j !== i));
+  }
+
+  async function submitAmend() {
+    const cleaned = schedule.filter(
+      (s) => s.label.trim() && s.activity.trim()
+    );
+    if (cleaned.length === 0) {
+      setError("Keep at least one block with a time and activity.");
+      return;
+    }
+    setAmending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/challenges/amend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id, schedule: cleaned }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Could not update the plan");
+      setPlan(Array.isArray(json.plan) ? json.plan : []);
+      setBefore(json.before ?? "");
+      setCarryover(json.carryover ?? "");
+      setEditingSchedule(false);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update the plan");
+    } finally {
+      setAmending(false);
+    }
+  }
 
   const meta = RARITY_META[challenge.rarity];
   const sealed = challenge.status === "sealed";
@@ -161,10 +245,91 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
           {challenge.flavor && (
             <p className="mt-3 text-base font-medium italic">{challenge.flavor}</p>
           )}
-          <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200">
-            {challenge.instruction}
-          </p>
+          {plan.length > 0 ? (
+            <div className="mt-3">
+              <PlanTimeline
+                plan={plan}
+                before={before}
+                carryover={carryover}
+                accent={meta.colour}
+              />
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200">
+              {challenge.instruction}
+            </p>
+          )}
         </>
+      )}
+
+      {/* Plans changed? Edit the schedule and the Decider re-plans the affected
+          blocks only, keeping the rest. */}
+      {!sealed && editingSchedule && (
+        <div className="mt-4 space-y-2 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+          <p className="text-xs font-medium text-neutral-500">
+            Adjust today&apos;s blocks — the Decider will only re-do what changed.
+          </p>
+          {schedule.map((s, i) => (
+            <div
+              key={i}
+              className="space-y-2 rounded-lg border border-neutral-200 p-2.5 dark:border-neutral-800"
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  value={s.label}
+                  onChange={(e) => updateBlock(i, { label: e.target.value })}
+                  placeholder="Time (e.g. 2–3:30pm)"
+                  className="w-full rounded-lg border border-neutral-300 px-2.5 py-1.5 text-sm font-medium outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                />
+                <button
+                  onClick={() => removeBlock(i)}
+                  aria-label="Remove block"
+                  className="shrink-0 rounded-lg border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-500 hover:text-red-600 dark:border-neutral-700"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <input
+                  value={s.activity}
+                  onChange={(e) => updateBlock(i, { activity: e.target.value })}
+                  placeholder="Activity"
+                  className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                />
+                <input
+                  value={s.location}
+                  onChange={(e) => updateBlock(i, { location: e.target.value })}
+                  placeholder="Location (optional)"
+                  className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                />
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={addBlock}
+            className="w-full rounded-lg border border-dashed border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:hover:text-neutral-100"
+          >
+            + Add a block
+          </button>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={submitAmend}
+              disabled={amending}
+              className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+            >
+              {amending ? "Re-planning…" : "Update plan"}
+            </button>
+            <button
+              onClick={() => {
+                setEditingSchedule(false);
+                loadPlan();
+              }}
+              className="rounded-lg px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Primary action */}
@@ -299,6 +464,14 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
             className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             {showAppeal ? "Close" : "Talk to the Decider"}
+          </button>
+        )}
+        {!sealed && (
+          <button
+            onClick={() => setEditingSchedule((v) => !v)}
+            className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+          >
+            {editingSchedule ? "Close" : "Plans changed?"}
           </button>
         )}
         {canCancel ? (

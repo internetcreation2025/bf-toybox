@@ -24,6 +24,18 @@ export function GameFollowup({ memory }: { memory: GameMemory }) {
     router.refresh();
   }
 
+  // The game never happened (e.g. the session was cancelled) — clear the nag
+  // without touching the streak.
+  async function dismiss() {
+    setBusy(true);
+    await fetch("/api/memory/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memoryId: memory.id, status: "dismissed" }),
+    });
+    router.refresh();
+  }
+
   return (
     <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
       <p className="text-sm font-medium">{memory.title}</p>
@@ -66,6 +78,13 @@ export function GameFollowup({ memory }: { memory: GameMemory }) {
           className="rounded-lg border border-amber-400 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 dark:text-amber-300 dark:hover:bg-amber-950/50"
         >
           Lost / disappointing
+        </button>
+        <button
+          onClick={dismiss}
+          disabled={busy}
+          className="rounded-lg px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+        >
+          Didn&apos;t happen
         </button>
       </div>
     </div>
