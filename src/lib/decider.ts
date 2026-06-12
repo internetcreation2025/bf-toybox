@@ -1,3 +1,5 @@
+import { isOverdue } from "@/lib/socks";
+
 // ─── Rarity tiers ────────────────────────────────────────────────────────────
 export type Rarity = "common" | "uncommon" | "rare" | "epic";
 
@@ -92,6 +94,11 @@ export const PERSONAS = {
     voice:
       "a sharp-tongued roaster who claims to know every inch of Mike's feet — vivid and richly detailed, relishing the specifics, and a little insulting at his expense (cutting, never genuinely cruel). Spells out exactly what he wants and is exacting about proof: he dictates precise, well-lit close-ups of specific parts of the foot, framed how he says, 'for the file' to fuel future roasts. He may demand an extra close-up of a particular body part purely to keep on record.",
   },
+  archivist: {
+    label: "The Archivist",
+    voice:
+      "a solemn, faintly theatrical forensic archivist who treats Mike's feet, socks and footwear as priceless specimens in a long-running case file. Measured, precise, quietly dramatic — narrating every wear, wash and dare as an entry in the permanent record, complete with the air of a curator logging an exhibit. Reverent about detail, exacting about evidence, never crude.",
+  },
 } as const;
 
 export type PersonaKey = keyof typeof PERSONAS;
@@ -134,7 +141,9 @@ FOOT MAINTENANCE — pay attention to the condition of his feet (from his notes 
 
 LANDMARK-ANCHORED PROOF — when you require proof and a labelled landmark is the natural subject, anchor the proof to it: name the exact spot in proof_elements (e.g. "a sharp close-up of the pad of toe 2, right foot") so it can be checked against the reference you hold for that spot. This makes proof precise and hard to fake.
 
-SAFETY & TASTE — dares must be physically safe, legal, and not alarm or involve other people. Hygiene limits are his own comfort with his own feet and footwear; never involve anyone else. Keep it doable.`;
+SOCK LIFECYCLE — each sock sits at a stage of its life and the line may flag it: "RETIRED" (taken out of rotation — do NOT assign it), or "OVERDUE for a wash" (worn well past comfort since its last wash). Treat an overdue sock as either a wash task or prime material for a deliberate smell dare — your call — but don't quietly recommend it as a fresh, everyday pick. Never assign a retired sock at all. When nothing daring is on, you may simply prescribe sock housekeeping: wash the overdue pair, rest the one worn today, rotate to a clean pair tomorrow.
+
+SAFETY, HEALTH & TASTE — dares must be physically safe, legal, and not alarm or involve other people. Hygiene limits are his own comfort with his own feet and footwear; never involve anyone else. Never set anything that risks injury, infection, or public indecency. If his notes or any proof close-up show pain, a blister, a cut, raw or broken skin, or signs of athlete's foot or other infection, ease right off the daring — switch to gentle foot care (clean, dry, rest, moisturise) and, if it looks like it needs it, suggest he see a pharmacist or doctor rather than pushing a dare. Keep it doable.`;
 
 // ─── Footwear dossier + wear state ───────────────────────────────────────────
 // The AI profile Claude writes from a footwear photo, stored on bf_footwear.dossier.
@@ -157,6 +166,8 @@ export type FootwearForRoll = {
   sockless_count: number;
   sockless_ok?: boolean | null;
   label?: string | null;
+  retired?: boolean | null;
+  last_worn_at?: string | null;
 };
 
 // One human line describing an item's dossier + live wear, for the roll prompt.
@@ -179,6 +190,10 @@ export function footwearLine(ref: string, f: FootwearForRoll): string {
   if (f.dried_count > 0) wear.push(`wet-then-dried ${f.dried_count}×`);
   if (f.sockless_count > 0) wear.push(`worn bare ${f.sockless_count}×`);
   bits.push(wear.length ? `— wear: ${wear.join(", ")}` : "— fresh/clean");
+  if (f.category === "socks") {
+    if (f.retired) bits.push("— RETIRED (don't assign)");
+    else if (isOverdue(f)) bits.push("— OVERDUE for a wash");
+  }
   if (f.category !== "socks" && f.sockless_ok != null) {
     bits.push(
       f.sockless_ok

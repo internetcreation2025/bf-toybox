@@ -83,7 +83,7 @@ export default function SettingsPage() {
       {/* Persona */}
       <section className="mt-8">
         <h2 className="text-sm font-semibold">Voice</h2>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {(Object.keys(PERSONAS) as PersonaKey[]).map((k) => (
             <button
               key={k}

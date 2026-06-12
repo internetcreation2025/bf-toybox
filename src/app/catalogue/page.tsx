@@ -10,6 +10,7 @@ import {
   prettyCategory,
   type FootwearCategory,
 } from "@/lib/feet";
+import { sockStage, SOCK_STAGE_META } from "@/lib/socks";
 
 type Item = {
   id: string;
@@ -23,10 +24,14 @@ type Item = {
   played_count: number | null;
   dried_count: number | null;
   sockless_count: number | null;
+  last_worn_at: string | null;
   last_washed_at: string | null;
   sockless_ok: boolean | null;
   wash_count: number | null;
   label: string | null;
+  retired: boolean | null;
+  bio: string | null;
+  bio_updated_at: string | null;
 };
 
 // Same model the Smell-o-Meter uses — estimate current ripeness 0–10.
@@ -454,6 +459,44 @@ function ItemCard({
   const socklessCount = it.sockless_count ?? 0;
   const washCount = it.wash_count ?? 0;
   const currentSmell = estimateSmell(wornHours, playedCount, driedCount);
+  const stage = sockStage({
+    retired: it.retired,
+    worn_hours: wornHours,
+    played_count: playedCount,
+    dried_count: driedCount,
+    last_worn_at: it.last_worn_at,
+  });
+  const stageMeta = SOCK_STAGE_META[stage];
+
+  // Sock biography (the Archivist's evolving story for this pair).
+  const [bio, setBio] = useState(it.bio ?? "");
+  const [bioOpen, setBioOpen] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
+
+  async function writeBio() {
+    setBioBusy(true);
+    try {
+      const res = await fetch("/api/footwear/biography", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: it.id }),
+      });
+      const json = await res.json();
+      if (res.ok && json.bio) setBio(json.bio);
+    } finally {
+      setBioBusy(false);
+    }
+  }
+
+  async function toggleRetired() {
+    setBusy(true);
+    await supabase
+      .from("bf_footwear")
+      .update({ retired: !it.retired })
+      .eq("id", it.id);
+    setBusy(false);
+    await onChanged();
+  }
 
   // Per-sock audit history (lazy-loaded).
   const [auditOpen, setAuditOpen] = useState(false);
@@ -599,6 +642,14 @@ function ItemCard({
               smell ~{currentSmell}/10 · washed {washCount}×
             </p>
           )}
+          {isSock && (
+            <span
+              title={stageMeta.hint}
+              className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${stageMeta.classes}`}
+            >
+              {stageMeta.label}
+            </span>
+          )}
         </div>
         <button
           onClick={onDelete}
@@ -630,6 +681,19 @@ function ItemCard({
               className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               {auditOpen ? "Hide audit" : "Audit"}
+            </button>
+            <button
+              onClick={() => setBioOpen((v) => !v)}
+              className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              {bioOpen ? "Hide story" : "Biography"}
+            </button>
+            <button
+              onClick={toggleRetired}
+              disabled={busy}
+              className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            >
+              {it.retired ? "Bring back" : "Retire"}
             </button>
           </>
         ) : (
@@ -681,6 +745,29 @@ function ItemCard({
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* Sock biography — the Archivist's evolving story for this pair */}
+      {isSock && bioOpen && (
+        <div className="mt-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+          {bio ? (
+            <p className="whitespace-pre-line text-sm italic leading-relaxed text-neutral-600 dark:text-neutral-300">
+              {bio}
+            </p>
+          ) : (
+            <p className="text-xs text-neutral-400">
+              No story written yet. The Archivist will compose one from this
+              pair&apos;s history.
+            </p>
+          )}
+          <button
+            onClick={writeBio}
+            disabled={bioBusy}
+            className="mt-3 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+          >
+            {bioBusy ? "Writing…" : bio ? "Refresh the story" : "Write its story"}
+          </button>
         </div>
       )}
 

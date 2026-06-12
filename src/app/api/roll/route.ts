@@ -312,6 +312,8 @@ export async function POST(request: Request) {
       sockless_count: Number(row?.sockless_count) || 0,
       sockless_ok: (row?.sockless_ok as boolean | null | undefined) ?? null,
       label: (row?.label as string | null | undefined) ?? null,
+      retired: (row?.retired as boolean | null | undefined) ?? null,
+      last_worn_at: (row?.last_worn_at as string | null | undefined) ?? null,
     };
     return footwearLine(ref, item);
   });

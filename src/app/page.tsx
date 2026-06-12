@@ -178,6 +178,21 @@ export default async function Home() {
         <span aria-hidden>→</span>
       </Link>
 
+      <Link
+        href="/chronicle"
+        className="mt-3 flex items-center justify-between rounded-xl border border-neutral-200 p-5 transition-colors hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
+      >
+        <span>
+          <span className="font-medium">Open the Foot Chronicle</span>
+          <span className="mt-0.5 block text-xs text-neutral-500">
+            The running record of your feet — and the Archivist&apos;s weekly digest.
+          </span>
+        </span>
+        <span aria-hidden className="text-neutral-400">
+          →
+        </span>
+      </Link>
+
       <p className="mt-10 text-center text-xs text-neutral-400">
         Roll for a verdict, complete it, keep the streak alive.
       </p>
