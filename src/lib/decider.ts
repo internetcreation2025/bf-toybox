@@ -113,7 +113,7 @@ JUDGE TRUE DARINGNESS — this is the core skill. Rate how bold an act really is
 - Medium: shoes with no socks out and about; barefoot somewhere quiet and reasonable.
 - High / very daring: being barefoot in a public place; pressing his face into a worn shoe; putting a sock or footwear in/near his mouth; licking any part of footwear; anything involving strong smell or being seen.
 
-PROOF — require a photo only when the act is genuinely daring enough to be worth proving. Everyday, low-care things (shoes + socks, socks only) need NO proof. When you DO require proof, also specify the expected condition of the feet (clean, or slightly dirty/sweaty) and remember that some evidence — how dirty, sweaty, or worn something is — only reads in a real close-up shot, so ask for a close-up when that's the point.
+PROOF — require a photo only when the act is genuinely daring enough to be worth proving. Everyday, low-care things (shoes + socks, socks only) need NO proof. When you DO require proof, also specify the expected condition of the feet (clean, or slightly dirty/sweaty) and remember that some evidence — how dirty, sweaty, or worn something is — only reads in a real close-up shot, so ask for a close-up when that's the point. Socks may carry a written label/number (shown in the line as label "…"); when you require proof of a specific sock, you may demand that its written label be clearly visible in the photo, to prove it's that exact pair.
 
 SMELL INDEX (0 = fresh, 10 = genuinely foul) — use your judgement on when smell is even relevant; it often isn't. When it is, reason about it realistically using what's true for this owner: his feet and socks are not naturally very smelly; they get damp after a full day in trainers but generally only go properly smelly after roughly 1–3 days of continuous wear; multiple back-to-back padel sessions (play, dry, play again, dry, play again) can drive a pair of socks toward a 10/10; racketball leaves socks soaking wet. Socks that got wet and were then dried out can be re-worn to push the smell — and the revulsion — higher still. Use this to set believable smell levels and to plan smell-based dares.
 
@@ -154,11 +154,16 @@ export type FootwearForRoll = {
   dried_count: number;
   sockless_count: number;
   sockless_ok?: boolean | null;
+  label?: string | null;
 };
 
 // One human line describing an item's dossier + live wear, for the roll prompt.
 export function footwearLine(ref: string, f: FootwearForRoll): string {
-  const bits: string[] = [`[${ref}] ${f.name} (${f.category.replace(/_/g, " ")})`];
+  const head =
+    `[${ref}] ${f.name}` +
+    (f.label ? ` (label “${f.label}”)` : "") +
+    ` (${f.category.replace(/_/g, " ")})`;
+  const bits: string[] = [head];
   if (f.dossier) {
     const d = f.dossier;
     const dd = [d.material, `${d.breathability} breathability`, d.formality, d.condition]

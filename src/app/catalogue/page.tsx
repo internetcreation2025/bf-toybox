@@ -26,6 +26,7 @@ type Item = {
   last_washed_at: string | null;
   sockless_ok: boolean | null;
   wash_count: number | null;
+  label: string | null;
 };
 
 // Same model the Smell-o-Meter uses — estimate current ripeness 0–10.
@@ -56,6 +57,7 @@ export default function CataloguePage() {
   const [notes, setNotes] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [sockless, setSockless] = useState<SocklessPref>("unset");
+  const [label, setLabel] = useState("");
 
   // Filtering + full-size viewing.
   const [filter, setFilter] = useState<string>("all");
@@ -142,6 +144,13 @@ export default function CataloguePage() {
           .update({ sockless_ok: prefToBool(sockless) })
           .eq("id", inserted.id);
       }
+      // Physical label/number (resilient — separate update).
+      if (label.trim()) {
+        await supabase
+          .from("bf_footwear")
+          .update({ label: label.trim() })
+          .eq("id", inserted.id);
+      }
 
       setName("");
       setColour("");
@@ -149,6 +158,7 @@ export default function CataloguePage() {
       setPhoto(null);
       setCategory("trainers");
       setSockless("unset");
+      setLabel("");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
@@ -215,6 +225,12 @@ export default function CataloguePage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Notes (optional)"
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label / number (e.g. 7 — the tag on the sock)"
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
         </div>
@@ -356,6 +372,7 @@ function ItemCard({
   const [eSockless, setESockless] = useState<SocklessPref>(
     boolToPref(it.sockless_ok)
   );
+  const [eLabel, setELabel] = useState(it.label ?? "");
   const [editErr, setEditErr] = useState("");
 
   function startEdit() {
@@ -365,6 +382,7 @@ function ItemCard({
     setENotes(it.notes ?? "");
     setEPhoto(null);
     setESockless(boolToPref(it.sockless_ok));
+    setELabel(it.label ?? "");
     setEditErr("");
     setEditing(true);
   }
@@ -395,6 +413,11 @@ function ItemCard({
           .update({ sockless_ok: prefToBool(eSockless) })
           .eq("id", it.id);
       }
+      // Physical label/number (resilient — separate update).
+      await supabase
+        .from("bf_footwear")
+        .update({ label: eLabel.trim() || null })
+        .eq("id", it.id);
 
       // New photo → upload, point the row at it, and re-profile.
       if (ePhoto && userId) {
@@ -551,7 +574,14 @@ function ItemCard({
           <div className="h-24 w-24 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-900" />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{it.name}</p>
+          <p className="flex items-center gap-2">
+            {it.label && (
+              <span className="shrink-0 rounded-md bg-neutral-900 px-1.5 py-0.5 text-xs font-semibold text-white dark:bg-white dark:text-neutral-900">
+                {it.label}
+              </span>
+            )}
+            <span className="truncate font-medium">{it.name}</span>
+          </p>
           <p className="text-xs capitalize text-neutral-500">
             {prettyCategory(it.category)}
             {it.colour ? ` · ${it.colour}` : ""}
@@ -686,6 +716,12 @@ function ItemCard({
             value={eNotes}
             onChange={(e) => setENotes(e.target.value)}
             placeholder="Notes (optional)"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+          <input
+            value={eLabel}
+            onChange={(e) => setELabel(e.target.value)}
+            placeholder="Label / number (the tag on the sock)"
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
           {eCategory !== "socks" && (
