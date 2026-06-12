@@ -9,7 +9,7 @@ const LINKS = [
   { href: "/catalogue", label: "Catalogue" },
   { href: "/feet", label: "Feet" },
   { href: "/gallery", label: "The file" },
-  { href: "/guess", label: "Guess" },
+  { href: "/games", label: "Games" },
   { href: "/archive", label: "Archive" },
   { href: "/stats", label: "Stats" },
   { href: "/settings", label: "Settings" },

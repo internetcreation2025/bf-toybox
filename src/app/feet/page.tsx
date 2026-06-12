@@ -117,14 +117,13 @@ export default function FeetPage() {
       )}
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {FOOT_ANGLES.map((a, i) => (
+        {FOOT_ANGLES.map((a) => (
           <AngleCard
             key={a.key}
             label={a.label}
             url={urls[a.key]}
             ref_={refs[a.key]}
             busy={busy === a.key}
-            index={i}
             onView={setLightbox}
             onPick={(file) => handleUpload(a.key, file)}
           />
@@ -154,7 +153,6 @@ function AngleCard({
   url,
   ref_,
   busy,
-  index,
   onView,
   onPick,
 }: {
@@ -162,7 +160,6 @@ function AngleCard({
   url?: string;
   ref_?: RefRow;
   busy: boolean;
-  index: number;
   onView: (url: string) => void;
   onPick: (file: File) => void;
 }) {
@@ -190,8 +187,7 @@ function AngleCard({
           <img
             src={url}
             alt={label}
-            style={{ animationDelay: `${index * 0.7}s` }}
-            className="toe-wiggle max-h-full max-w-full object-contain"
+            className="max-h-full max-w-full object-contain"
           />
         </button>
       ) : (
