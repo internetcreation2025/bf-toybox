@@ -57,7 +57,7 @@ export function AutoLock() {
 
     // A genuine fresh sign-in (not a reload) resets the window.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "MFA_CHALLENGE_VERIFIED") touch();
+      if (event === "SIGNED_IN") touch();
     });
 
     const events = ["click", "keydown", "pointerdown", "touchstart", "scroll"];

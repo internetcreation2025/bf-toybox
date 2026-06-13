@@ -7,7 +7,7 @@ import { DigestPanel } from "@/components/DigestPanel";
 // recorded event (rolls, sock wears & washes, diary, gallery) into a single
 // dated timeline, topped by the Archivist's latest weekly digest.
 
-type Kind = "verdict" | "wear" | "wash" | "diary" | "gallery";
+type Kind = "verdict" | "wear" | "wash" | "diary";
 
 type Event = {
   ts: string; // ISO timestamp it's sorted by
@@ -23,7 +23,6 @@ const KIND_DOT: Record<Kind, string> = {
   wear: "#3b82f6",
   wash: "#22c55e",
   diary: "#9ca3af",
-  gallery: "#f59e0b",
 };
 
 export default async function ChroniclePage() {
@@ -34,7 +33,6 @@ export default async function ChroniclePage() {
     { data: challenges },
     { data: sockLog },
     { data: memory },
-    { data: gallery },
     { data: digest },
   ] = await Promise.all([
     supabase.from("bf_footwear").select("id, name, label"),
@@ -56,12 +54,6 @@ export default async function ChroniclePage() {
       .in("kind", ["diary", "prep", "game"])
       .order("created_at", { ascending: false })
       .limit(50),
-    supabase
-      .from("bf_gallery")
-      .select("id, prompt, note, status, created_at, filed_at")
-      .eq("status", "filed")
-      .order("created_at", { ascending: false })
-      .limit(40),
     supabase
       .from("bf_memory")
       .select("title, game_on, created_at")
@@ -141,18 +133,6 @@ export default async function ChroniclePage() {
       kind: "diary",
       dot: KIND_DOT.diary,
       title: `${word}: ${m.title}`,
-    });
-  }
-
-  // Gallery shots filed for the Roaster
-  for (const g of gallery ?? []) {
-    events.push({
-      ts: (g.filed_at as string) || (g.created_at as string),
-      kind: "gallery",
-      dot: KIND_DOT.gallery,
-      title: "Filed a shot for the Roaster",
-      detail: (g.note as string) || (g.prompt as string) || null,
-      href: "/gallery",
     });
   }
 

@@ -4,30 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [googleBusy, setGoogleBusy] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus("sending");
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        // Never create a new account from the login form — only existing users
-        // (i.e. the owner) can receive a link.
-        shouldCreateUser: false,
-      },
-    });
-
-    // Always show the same confirmation, regardless of whether the email exists,
-    // so the form can't be used to discover which accounts are registered.
-    if (error) console.error("login otp error:", error.message);
-    setStatus("sent");
-  }
 
   async function handleGoogle() {
     setGoogleBusy(true);
@@ -55,58 +32,19 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {status === "sent" ? (
-          <div className="rounded-xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
-            <p className="font-medium">Check your email</p>
-            <p className="mt-2 text-sm text-neutral-500">
-              If that address is registered, a one-time sign-in link is on its
-              way. Open it on this device to log in.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={handleGoogle}
-              disabled={googleBusy}
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 px-4 py-3 text-sm font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
-            >
-              <GoogleIcon />
-              {googleBusy ? "Redirecting…" : "Continue with Google"}
-            </button>
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={googleBusy}
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 px-4 py-3 text-sm font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        >
+          <GoogleIcon />
+          {googleBusy ? "Redirecting…" : "Continue with Google"}
+        </button>
 
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
-              <span className="text-xs uppercase tracking-wide text-neutral-400">
-                or
-              </span>
-              <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-lg border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 dark:focus:border-neutral-100"
-              />
-              <button
-                type="submit"
-                disabled={status === "sending"}
-                className="w-full rounded-lg bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
-              >
-                {status === "sending" ? "Sending…" : "Send magic link"}
-              </button>
-            </form>
-
-            <p className="text-center text-xs text-neutral-400">
-              Access is restricted to the owner&apos;s email, with an
-              authenticator code required.
-            </p>
-          </div>
-        )}
+        <p className="mt-4 text-center text-xs text-neutral-400">
+          Access is restricted to the owner&apos;s Google account.
+        </p>
       </div>
     </main>
   );

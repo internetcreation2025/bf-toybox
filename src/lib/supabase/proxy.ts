@@ -8,9 +8,9 @@ function matches(path: string, list: string[]) {
   return list.some((p) => path === p || path.startsWith(p + "/"));
 }
 
-// Refreshes the Supabase session and gates access in two layers:
-//  1) must be logged in AND the email must match ALLOWED_EMAIL
-//  2) must have completed the authenticator-code step (assurance level aal2)
+// Refreshes the Supabase session and gates access: must be logged in (via
+// Google) AND the email must match ALLOWED_EMAIL. (No second factor — a single
+// Google account is the whole gate.)
 export async function updateSession(request: NextRequest) {
   // The cron dispatcher is called by an external scheduler with no session — it
   // guards itself with a shared secret, so skip the auth funnel entirely.
@@ -53,31 +53,12 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const onFunnel = matches(path, FUNNEL_PATHS);
-  const onMfa = path === "/mfa" || path.startsWith("/mfa/");
 
-  // Layer 1: logged in + allowlisted.
+  // Logged in + allowlisted, or bounce to the login screen.
   if (!isAllowed) {
     if (onFunnel) return supabaseResponse;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  // Layer 2: authenticator code (aal2). Until the session reaches aal2, the only
-  // places the user may go are the MFA page (to enrol or enter their code) and
-  // the auth funnel (e.g. signout).
-  let currentLevel: string | null = null;
-  try {
-    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    currentLevel = data?.currentLevel ?? null;
-  } catch {
-    currentLevel = null;
-  }
-
-  if (currentLevel !== "aal2") {
-    if (onMfa || onFunnel) return supabaseResponse;
-    const url = request.nextUrl.clone();
-    url.pathname = "/mfa";
     return NextResponse.redirect(url);
   }
 

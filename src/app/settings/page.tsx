@@ -3,13 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import {
-  PERSONAS,
-  DEFAULT_PERSONA,
-  DEFAULT_BASE_INSTRUCTIONS,
-  isPersonaKey,
-  type PersonaKey,
-} from "@/lib/decider";
+import { DEFAULT_BASE_INSTRUCTIONS } from "@/lib/decider";
 import {
   VAPID_PUBLIC_KEY,
   pushSupported,
@@ -21,7 +15,6 @@ import {
 export default function SettingsPage() {
   const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
-  const [persona, setPersona] = useState<PersonaKey>(DEFAULT_PERSONA);
   const [base, setBase] = useState(DEFAULT_BASE_INSTRUCTIONS);
   const [custom, setCustom] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
@@ -35,7 +28,6 @@ export default function SettingsPage() {
 
     const { data } = await supabase.from("bf_settings").select("*").maybeSingle();
     if (data) {
-      if (isPersonaKey(data.persona)) setPersona(data.persona);
       setBase(
         data.base_instructions?.trim()
           ? data.base_instructions
@@ -55,7 +47,6 @@ export default function SettingsPage() {
     await supabase.from("bf_settings").upsert(
       {
         user_id: userId,
-        persona,
         base_instructions: base.trim() || DEFAULT_BASE_INSTRUCTIONS,
         custom_instructions: custom.trim() || null,
       },
@@ -79,26 +70,6 @@ export default function SettingsPage() {
       <p className="mt-1 text-sm text-neutral-500">
         Tune how the game master behaves. Your changes apply to every future roll.
       </p>
-
-      {/* Persona */}
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold">Voice</h2>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {(Object.keys(PERSONAS) as PersonaKey[]).map((k) => (
-            <button
-              key={k}
-              onClick={() => setPersona(k)}
-              className={`rounded-xl border p-3 text-left text-sm transition-colors ${
-                persona === k
-                  ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                  : "border-neutral-300 dark:border-neutral-700"
-              }`}
-            >
-              <span className="font-medium">{PERSONAS[k].label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
 
       {/* Base instructions */}
       <section className="mt-8">

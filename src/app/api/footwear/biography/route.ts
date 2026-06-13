@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
-import { PERSONAS } from "@/lib/decider";
+import { DECIDER_VOICE } from "@/lib/decider";
 import { describeSock } from "@/lib/socks";
 
 // The Archivist writes a short, evolving "biography" for one sock, built from
@@ -111,9 +111,9 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "user",
-          content: `You are The Archivist of a private footwear chronicle. Voice: ${PERSONAS.archivist.voice}
+          content: `You are the Decider, keeping a private footwear chronicle. Voice: ${DECIDER_VOICE}
 
-Write a short biography — 3 to 5 sentences — of this single pair of socks, as an entry in the permanent case file. Treat the pair as a character with a life so far. Use ONLY the recorded facts below; do not invent events, places or people. Lean on the numbers to give it shape (a well-travelled veteran, a pampered newcomer, a notorious ripe offender, etc.). No markdown, no headings, no quotes — just the biography prose.
+Write a short biography — 3 to 5 sentences — of this single pair of socks, in your own fond, knowing voice. Treat the pair as a character with a life so far. Use ONLY the recorded facts below; do not invent events, places or people. Lean on the numbers to give it shape (a well-travelled veteran, a pampered newcomer, a notorious ripe offender, etc.). No markdown, no headings, no quotes — just the biography prose.
 
 RECORDED FACTS
 ${facts}`,

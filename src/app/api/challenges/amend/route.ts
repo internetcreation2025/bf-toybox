@@ -5,9 +5,7 @@ import {
   composeInstructions,
   footwearLine,
   rarityBrief,
-  PERSONAS,
-  DEFAULT_PERSONA,
-  isPersonaKey,
+  DECIDER_VOICE,
   type Rarity,
   type Dossier,
   type FootwearForRoll,
@@ -87,9 +85,6 @@ export async function POST(request: Request) {
     .from("bf_settings")
     .select("*")
     .maybeSingle();
-  const persona = isPersonaKey(settings?.persona)
-    ? settings.persona
-    : DEFAULT_PERSONA;
   const instructions = composeInstructions(
     settings?.base_instructions,
     settings?.custom_instructions
@@ -143,6 +138,8 @@ export async function POST(request: Request) {
   });
 
   const prompt = `${instructions}
+
+Persona — write ALL player-facing text in this voice: ${DECIDER_VOICE}
 
 You are AMENDING a verdict that is already IN PLAY — the owner's day shifted, so his schedule changed. Do NOT start over and do NOT re-roll: keep the same rolled tier (${rarity.toUpperCase()}) and the same headline/bonus moment. Revise ONLY the part of the plan affected by the change — the block(s) that were added, removed, retimed, moved or re-described, plus any step immediately before or after whose prep or carry-over depends on it. Leave every other step EXACTLY as it was, word for word. If the block that WAS the headline is gone or changed beyond recognition, move the headline to the most fitting remaining block at the same tier; otherwise keep it where it is. Photo proof requirement stays ${proofRequired ? "ON (keep proof elements about the headline)" : "OFF"}.
 

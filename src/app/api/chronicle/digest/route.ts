@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { anthropic, CLAUDE_MODEL } from "@/lib/anthropic";
-import { PERSONAS, type Rarity } from "@/lib/decider";
+import { DECIDER_VOICE, type Rarity } from "@/lib/decider";
 
 // The Archivist writes a weekly digest: a short, dramatic recap of the last 7
 // days of foot life, built from the real records. Stored in bf_memory as a
@@ -33,7 +33,6 @@ export async function POST() {
     { data: challenges },
     { data: sockLog },
     { data: memory },
-    { data: gallery },
   ] = await Promise.all([
     supabase.from("bf_footwear").select("id, name, label"),
     supabase
@@ -48,11 +47,6 @@ export async function POST() {
       .from("bf_memory")
       .select("kind, title, created_at")
       .in("kind", ["diary", "prep", "game"])
-      .gte("created_at", weekAgoIso),
-    supabase
-      .from("bf_gallery")
-      .select("note, prompt, status, created_at")
-      .eq("status", "filed")
       .gte("created_at", weekAgoIso),
   ]);
 
@@ -101,14 +95,10 @@ export async function POST() {
     }
   }
 
-  const galleryShots = (gallery ?? []).length;
   const diaryItems = (memory ?? []).length;
 
   const nothingHappened =
-    rolls.length === 0 &&
-    log.length === 0 &&
-    galleryShots === 0 &&
-    diaryItems === 0;
+    rolls.length === 0 && log.length === 0 && diaryItems === 0;
 
   const facts = [
     `Verdicts rolled this week: ${rolls.length}` +
@@ -124,7 +114,6 @@ export async function POST() {
       ? `Most-worn sock (sock of the week): ${sockOfWeek}, ${Math.round(mostHours)}h`
       : `No single sock stood out.`,
     peakSock ? `Ripest moment: ${peakSock} hit ${peakSmell}/10` : null,
-    `Shots filed for the Roaster: ${galleryShots}`,
     `Diary/prep items set: ${diaryItems}`,
   ]
     .filter(Boolean)
@@ -139,10 +128,10 @@ export async function POST() {
         {
           role: "user",
           content: nothingHappened
-            ? `You are The Archivist of a private footwear chronicle. Voice: ${PERSONAS.archivist.voice}\n\nThe week ending ${todayIso} has NO recorded foot activity at all — an empty page in the ledger. Write 2 to 3 sentences marking the quiet week with dry, archival drama, and a faint nudge to make next week worth recording. No markdown, no headings, no quotes.`
-            : `You are The Archivist of a private footwear chronicle. Voice: ${PERSONAS.archivist.voice}
+            ? `You are the Decider, keeping a private footwear chronicle. Voice: ${DECIDER_VOICE}\n\nThe week ending ${todayIso} has NO recorded foot activity at all — a quiet, empty page. Write 2 to 3 sentences marking the quiet week in your voice, with a faint, fond nudge to make next week worth recording. No markdown, no headings, no quotes.`
+            : `You are the Decider, keeping a private footwear chronicle. Voice: ${DECIDER_VOICE}
 
-Write the weekly digest for the week ending ${todayIso} — a short recap, 4 to 7 sentences, of the life of Mike's feet this week. Treat it as a solemn-but-playful entry in the permanent record. Crown the "sock of the week" if there is one, note any milestones or ripe moments, and close with a touch of anticipation for next week. Use ONLY the recorded facts below; do not invent events. No markdown, no headings, no quotes — just the prose.
+Write the weekly digest for the week ending ${todayIso} — a short recap, 4 to 7 sentences, of the life of Mike's feet this week, in your own fond, knowing voice. Crown the "sock of the week" if there is one, note any milestones or ripe moments, and close with a touch of anticipation for next week. Use ONLY the recorded facts below; do not invent events. No markdown, no headings, no quotes — just the prose.
 
 RECORDED FACTS (week ending ${todayIso})
 ${facts}`,

@@ -227,12 +227,14 @@ export default function CataloguePage() {
             placeholder="Notes (optional)"
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Label / number (e.g. 7 — the tag on the sock)"
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-          />
+          {category === "socks" && (
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Label (e.g. S1a — the tag on the sock)"
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          )}
         </div>
         {category !== "socks" && (
           <label className="block text-xs text-neutral-500">
@@ -612,7 +614,7 @@ function ItemCard({
         )}
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2">
-            {it.label && (
+            {isSock && it.label && (
               <span className="shrink-0 rounded-md bg-neutral-900 px-1.5 py-0.5 text-xs font-semibold text-white dark:bg-white dark:text-neutral-900">
                 {it.label}
               </span>
@@ -799,12 +801,14 @@ function ItemCard({
             placeholder="Notes (optional)"
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
-          <input
-            value={eLabel}
-            onChange={(e) => setELabel(e.target.value)}
-            placeholder="Label / number (the tag on the sock)"
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-          />
+          {eCategory === "socks" && (
+            <input
+              value={eLabel}
+              onChange={(e) => setELabel(e.target.value)}
+              placeholder="Label (e.g. S1a — the tag on the sock)"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          )}
           {eCategory !== "socks" && (
             <label className="block text-xs text-neutral-500">
               Happy to wear these without socks?

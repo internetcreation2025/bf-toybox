@@ -30,7 +30,6 @@ type Authored = {
   proof_elements: string[];
   prep_tasks: string[];
   diary_tasks: DiaryTask[];
-  gallery_demand: string;
   wear_refs: string[];
   sockless: boolean;
 };
@@ -111,10 +110,6 @@ function parseAuthored(text: string, fallback: Authored): Authored {
             .map((d) => ({ task: (d.task as string).trim(), on: d.on as string }))
             .slice(0, 3)
         : fallback.diary_tasks,
-      gallery_demand:
-        typeof json.gallery_demand === "string"
-          ? json.gallery_demand.trim()
-          : fallback.gallery_demand,
       wear_refs: strings(json.wear_refs).slice(0, 4),
       sockless: json.sockless === true,
     };
@@ -252,18 +247,6 @@ export async function POST(request: Request) {
   const landmarks = (landmarkRows ?? [])
     .map((r) => (r.label as string | null)?.trim())
     .filter((x): x is string => !!x);
-
-  // The Roaster's "file": close-ups it demanded earlier and has on record.
-  const isRoaster = persona === "roaster";
-  const { data: galleryRows } = isRoaster
-    ? await supabase
-        .from("bf_gallery")
-        .select("prompt, note, status")
-        .eq("status", "filed")
-        .order("filed_at", { ascending: false })
-        .limit(6)
-    : { data: null };
-  const filedShots = (galleryRows ?? []).filter((g) => g.note?.trim());
 
   const { data: streakRow } = await supabase
     .from("bf_streak")
@@ -412,13 +395,6 @@ ${
     : ""
 }
 ${
-  filedShots.length
-    ? `YOUR FILE ON MIKE — close-ups you demanded earlier and keep on record. Reference these to needle him and to decide what's worth adding: ${filedShots
-        .map((g) => `"${g.prompt}" — ${g.note}`)
-        .join(" | ")}`
-    : ""
-}
-${
   landmarks.length
     ? `KNOWN FOOT LANDMARKS — you hold labelled reference close-ups of these exact spots on his feet. You may name them specifically, demand a fresh close-up of one as proof or for the file, and target foot-care there: ${landmarks.join("; ")}`
     : ""
@@ -448,15 +424,10 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   },
   "prep_tasks": ["zero or more short imperative tasks the owner must prepare DAYS IN ADVANCE for future sessions (e.g. 'Keep the sweaty socks from your next two padel games, dried and bagged, and carry them'); [] if none this round. Only set these on the more adventurous tiers."],
   "diary_tasks": [{ "task": "what he must do", "on": "YYYY-MM-DD on or after ${todayIso}" }],
-  "gallery_demand": ${
-    isRoaster
-      ? `"OPTIONAL and SEPARATE from the dare — only occasionally, when you fancy it. One short, exacting demand for a single well-lit close-up of a specific part of Mike's bare foot, framed how you want it, purely to add to your file for future roasts (e.g. 'a tight, well-lit shot of the underside of your right big toe'). Empty string if you don't want one this round."`
-      : `""`
-  },
   "wear_refs": ["the ref label(s) like F1, F2 of the footwear AND socks you're telling him to wear this session — [] if none / not a wear verdict"],
   "sockless": "true if you're telling him to wear a shoe with NO socks, otherwise false"
 }
-(diary_tasks: zero or more tasks to schedule for a SPECIFIC future date — use [] if none; only diarise when it genuinely makes sense. gallery_demand: a standalone close-up request for the Roaster's file, NOT proof for the dare — leave it as "" unless you genuinely want a shot on record.)`;
+(diary_tasks: zero or more tasks to schedule for a SPECIFIC future date — use [] if none; only diarise when it genuinely makes sense.)`;
 
   const fallback: Authored = {
     instruction: brief.guide,
@@ -467,7 +438,6 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     proof_elements: [],
     prep_tasks: [],
     diary_tasks: [],
-    gallery_demand: "",
     wear_refs: [],
     sockless: false,
   };
@@ -582,15 +552,6 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
         game_on: d.on,
       }))
     );
-  }
-
-  // The Roaster occasionally demands a standalone close-up "for the file" —
-  // logged as a pending gallery item Mike fulfils later. Never on sealed rolls.
-  if (!sealedUntil && isRoaster && authored.gallery_demand) {
-    await supabase.from("bf_gallery").insert({
-      user_id: user.id,
-      prompt: authored.gallery_demand.slice(0, 300),
-    });
   }
 
   console.log("[roll] done", rarity, sealedUntil ? "(sealed)" : "");
