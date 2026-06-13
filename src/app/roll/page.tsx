@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { type Rarity, type PlanStep } from "@/lib/decider";
@@ -119,12 +119,14 @@ export default function RollPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adHoc, setAdHoc] = useState("");
 
+  const [catalogueLoaded, setCatalogueLoaded] = useState(false);
   const loadCatalogue = useCallback(async () => {
     const { data } = await supabase
       .from("bf_footwear")
       .select("id, name, category")
       .order("created_at", { ascending: false });
     setCatalogue((data ?? []) as FootwearItem[]);
+    setCatalogueLoaded(true);
   }, [supabase]);
 
   // ── what he's already wearing right now (optional) ──
@@ -134,6 +136,21 @@ export default function RollPage() {
   useEffect(() => {
     loadCatalogue();
   }, [loadCatalogue]);
+
+  // Arriving from the home "Plan my day" button (?plan=1): pull the calendar
+  // automatically once the catalogue is loaded, so the day is laid out in one
+  // tap. Re-pulls fresh every time the page loads.
+  const autoPulledRef = useRef(false);
+  useEffect(() => {
+    if (autoPulledRef.current || !catalogueLoaded) return;
+    const wantPlan =
+      new URLSearchParams(window.location.search).get("plan") === "1";
+    if (wantPlan) {
+      autoPulledRef.current = true;
+      planWholeDay();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalogueLoaded]);
 
   const onHand: FootwearItem[] = useMemo(() => {
     const fromCatalogue = catalogue.filter((c) => selected.has(c.name));

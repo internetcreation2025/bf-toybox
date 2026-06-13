@@ -141,10 +141,15 @@ export default async function Home() {
       )}
 
       <Link
-        href="/roll"
+        href="/roll?plan=1"
         className="mt-8 flex items-center justify-between rounded-2xl bg-accent p-5 text-on-accent shadow-sm transition-transform hover:-translate-y-0.5"
       >
-        <span className="text-base font-semibold">Roll my next 4 hours</span>
+        <span>
+          <span className="text-base font-semibold">Plan my day</span>
+          <span className="mt-0.5 block text-xs opacity-80">
+            Pulls your calendar and lays out the day, foot by foot.
+          </span>
+        </span>
         <span aria-hidden className="text-lg">→</span>
       </Link>
 
@@ -161,21 +166,8 @@ export default async function Home() {
         <span aria-hidden className="text-muted">→</span>
       </Link>
 
-      <Link
-        href="/chronicle"
-        className="mt-3 flex items-center justify-between rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-accent"
-      >
-        <span>
-          <span className="font-medium">Open the Foot Chronicle</span>
-          <span className="mt-0.5 block text-xs text-muted">
-            The running record of your feet — and the weekly digest.
-          </span>
-        </span>
-        <span aria-hidden className="text-muted">→</span>
-      </Link>
-
       <p className="mt-10 text-center text-xs text-muted">
-        Roll for a verdict, complete it, keep the streak alive.
+        Plan your day, complete it, keep the streak alive.
       </p>
       <p className="mt-2 text-center text-xs text-muted">
         <Link href="/vision-test" className="hover:text-foreground">
