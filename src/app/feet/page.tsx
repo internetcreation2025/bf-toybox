@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { resizeImage } from "@/lib/image";
 import { FOOT_ANGLES } from "@/lib/feet";
+import { FootCare } from "@/components/FootCare";
 
 type RefRow = {
   id: string;
@@ -386,6 +387,8 @@ export default function FeetPage() {
           );
         })}
       </section>
+
+      <FootCare />
 
       {lightbox && (
         <div
