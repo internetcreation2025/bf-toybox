@@ -10,9 +10,18 @@ import { DECIDER_VOICE, type PlanStep } from "@/lib/decider";
 // it here: she hands back a suggestion the app shows as a one-tap confirm, so
 // nothing is recorded against a sock until Mike says yes.
 
-type WearSuggestion = { sockId: string; name: string; label: string | null; hours: number };
+type WearSuggestion = {
+  sockId: string;
+  name: string;
+  label: string | null;
+  hours: number;
+  sport: boolean;
+};
 
-type Parsed = { reply: string; wear: Array<{ sock_id?: string; hours?: number }> };
+type Parsed = {
+  reply: string;
+  wear: Array<{ sock_id?: string; hours?: number; sport?: boolean }>;
+};
 
 function parse(text: string): Parsed {
   const fallback: Parsed = { reply: text.trim() || "Noted.", wear: [] };
@@ -28,6 +37,7 @@ function parse(text: string): Parsed {
           .map((w) => ({
             sock_id: typeof w.sock_id === "string" ? w.sock_id : undefined,
             hours: Number(w.hours),
+            sport: !!w.sport,
           }))
           .filter((w) => w.sock_id && w.hours > 0)
       : [];
@@ -115,10 +125,10 @@ ${sockList || "(no socks catalogued)"}
 
 Do two things:
 1. Reply in 1–3 sentences, in your voice, directly to Mike — acknowledge what he tells you he did with his feet/socks/footwear, react to it (pleased, teasing, or noting it for later), and only add a small follow-up if it genuinely fits.
-2. If he clearly says he WORE a specific catalogued pair for some length of time, list it so it can be logged. Only include a pair when you're confident he names it (by its label or an unmistakable description) AND gives or implies a duration. Estimate hours if he's vague ("most of the afternoon" ≈ 4). Never invent a pair he didn't mention.
+2. If he clearly says he WORE a specific catalogued pair for some length of time, list it so it can be logged. Only include a pair when you're confident he names it (by its label or an unmistakable description) AND gives or implies a duration. Estimate hours if he's vague ("most of the afternoon" ≈ 4). Set "sport": true if that wear was a sweaty sport session (padel, racketball, squash, tennis, a run, the gym) — sport soaks a sock far worse than ordinary wear, so it must be marked. Never invent a pair he didn't mention.
 
 Return ONLY JSON, no preamble, no markdown:
-{ "reply": "your message to Mike", "wear": [ { "sock_id": "the exact id from the list", "hours": 2 } ] }
+{ "reply": "your message to Mike", "wear": [ { "sock_id": "the exact id from the list", "hours": 2, "sport": false } ] }
 If he didn't clearly wear a catalogued pair, use "wear": [].`,
         },
       ],
@@ -148,6 +158,7 @@ If he didn't clearly wear a catalogued pair, use "wear": [].`,
         name: s.name,
         label: s.label,
         hours: Math.round((w.hours ?? 0) * 2) / 2,
+        sport: !!w.sport,
       };
     })
     .filter((x): x is WearSuggestion => !!x && x.hours > 0);

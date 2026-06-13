@@ -4,6 +4,7 @@ import { ActiveSession, type ActiveChallenge } from "@/components/ActiveSession"
 import { UpcomingDays } from "@/components/UpcomingDays";
 import { GameFollowup, type GameMemory } from "@/components/GameFollowup";
 import { PrepMemory, type PrepItem } from "@/components/PrepMemory";
+import { DailyGreeting } from "@/components/DailyGreeting";
 
 // Middleware guarantees only the allowlisted owner reaches this page.
 export default async function Home() {
@@ -82,6 +83,8 @@ export default async function Home() {
         <Stat label="Best streak" value={streak?.longest_streak ?? 0} />
         <Stat label="Freeze tokens" value={streak?.freeze_tokens ?? 0} />
       </div>
+
+      <DailyGreeting />
 
       <UpcomingDays />
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { estimateSmell } from "@/lib/socks";
+import { estimateSmell, wearHoursAdded } from "@/lib/socks";
 
 // Resolves an active (in-play) challenge that doesn't need photo proof:
 //  - "completed": honour-system done → archive it and bump the streak.
@@ -125,7 +125,9 @@ export async function POST(request: Request) {
         .eq("id", id)
         .maybeSingle();
       if (!row) continue;
-      const nHours = (Number(row.worn_hours) || 0) + hours;
+      // Sport soaks a sock far worse than ordinary wear, so it adds several
+      // times the hours toward "since wash" (see wearHoursAdded).
+      const nHours = (Number(row.worn_hours) || 0) + wearHoursAdded(hours, playedInc === 1);
       const nPlayed = (Number(row.played_count) || 0) + playedInc;
       const nDried = (Number(row.dried_count) || 0) + driedInc;
       await supabase

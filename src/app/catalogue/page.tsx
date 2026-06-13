@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { resizeImage } from "@/lib/image";
 import type { Dossier } from "@/lib/decider";
@@ -10,7 +10,7 @@ import {
   prettyCategory,
   type FootwearCategory,
 } from "@/lib/feet";
-import { describeSock, estimateSmell } from "@/lib/socks";
+import { describeSock, estimateSmell, wearHoursAdded } from "@/lib/socks";
 
 type Item = {
   id: string;
@@ -63,6 +63,8 @@ export default function CataloguePage() {
   // Filtering + full-size viewing.
   const [filter, setFilter] = useState<string>("all");
   const [lightbox, setLightbox] = useState<string | null>(null);
+  // The add form is hidden until Mike asks for it — keeps the page image-led.
+  const [showAdd, setShowAdd] = useState(false);
 
   const load = useCallback(async () => {
     const {
@@ -167,6 +169,7 @@ export default function CataloguePage() {
       setCategory("trainers");
       setSockless("unset");
       setLabel("");
+      setShowAdd(false);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
@@ -200,9 +203,19 @@ export default function CataloguePage() {
         pair is. Add socks here too, with photos.
       </p>
 
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={() => setShowAdd((v) => !v)}
+          className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-muted transition-colors hover:border-accent hover:text-foreground"
+        >
+          {showAdd ? "Close" : "+ Add footwear"}
+        </button>
+      </div>
+
+      {showAdd && (
       <form
         onSubmit={handleAdd}
-        className="mt-6 space-y-3 rounded-xl border border-line p-5 dark:border-line"
+        className="mt-3 space-y-3 rounded-xl border border-line p-5 dark:border-line"
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input
@@ -279,6 +292,7 @@ export default function CataloguePage() {
         </div>
         {error && <p className="text-sm text-red-500">{error}</p>}
       </form>
+      )}
 
       {/* Filter by category */}
       {items.length > 0 && (
@@ -311,9 +325,9 @@ export default function CataloguePage() {
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.length === 0 && (
-          <p className="text-sm text-muted">No footwear yet.</p>
+          <p className="col-span-full text-sm text-muted">No footwear yet.</p>
         )}
         {items
           .filter((it) => filter === "all" || it.category === filter)
@@ -526,10 +540,14 @@ function ItemCard({
   const [boldOpen, setBoldOpen] = useState(false);
   const [boldNote, setBoldNote] = useState("");
 
-  // Identity verification from a proof photo of the label.
+  // Identity verification — reads the label from the pair's EXISTING photo.
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState("");
-  const verifyInputRef = useRef<HTMLInputElement>(null);
+
+  // Gallery view: the card is just the photo + name by default; everything else
+  // (metadata + all the actions) lives behind this toggle so the grid stays
+  // image-led and uncluttered.
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Socks carry hours + wash state; shoes only carry a "worn bare" tally.
   const wearBits: string[] = [];
@@ -544,7 +562,9 @@ function ItemCard({
   async function logWear() {
     setBusy(true);
     const h = Number(hours) || 0;
-    const nHours = wornHours + h;
+    // Sport soaks a sock far worse than ordinary wear, so it adds several times
+    // the hours toward "since wash" (see wearHoursAdded).
+    const nHours = wornHours + wearHoursAdded(h, played);
     const nPlayed = playedCount + (played ? 1 : 0);
     const nDried = driedCount + (dried ? 1 : 0);
     await supabase
@@ -644,24 +664,20 @@ function ItemCard({
     if (auditOpen) await loadAudit();
   }
 
-  // Verify this pair's identity from a proof photo of its written label.
-  async function verifyIdentity(file: File) {
+  // Verify this pair's identity by reading the label off its EXISTING catalogue
+  // photo — no new upload. (The server falls back to the stored photo when no
+  // image is passed.)
+  async function verifyFromPhoto() {
     setVerifyBusy(true);
     setVerifyMsg("");
     try {
-      const blob = await resizeImage(file);
-      const reader = new FileReader();
-      const dataUrl: string = await new Promise((res, rej) => {
-        reader.onload = () => res(reader.result as string);
-        reader.onerror = rej;
-        reader.readAsDataURL(blob);
-      });
       const res = await fetch("/api/footwear/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: it.id, image: dataUrl }),
+        body: JSON.stringify({ id: it.id }),
       });
-      const json = await res.json();
+      const raw = await res.text();
+      const json = raw ? JSON.parse(raw) : {};
       if (!res.ok) throw new Error(json.error || "Couldn't verify");
       setVerifyMsg(
         json.verified
@@ -690,42 +706,68 @@ function ItemCard({
   }
 
   return (
-    <div className="rounded-xl border border-line p-4 dark:border-line">
-      <div className="flex gap-4">
+    <div className="overflow-hidden rounded-xl border border-line">
+      {/* Photo hero — the card is image-led; tap the photo to enlarge. */}
+      <div className="relative aspect-square w-full bg-neutral-100 dark:bg-neutral-900">
         {url ? (
           <button
             type="button"
             onClick={() => onView(url)}
             aria-label={`View ${it.name} larger`}
-            className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-neutral-100 transition-opacity hover:opacity-90 dark:bg-neutral-900"
+            className="block h-full w-full transition-opacity hover:opacity-90"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={url}
-              alt={it.name}
-              className="max-h-full max-w-full object-contain"
-            />
+            <img src={url} alt={it.name} className="h-full w-full object-cover" />
           </button>
         ) : (
-          <div className="h-24 w-24 shrink-0 rounded-lg bg-neutral-100 dark:bg-neutral-900" />
+          <div className="flex h-full w-full items-center justify-center text-xs text-muted">
+            No photo
+          </div>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2">
-            {isSock && it.label && (
-              <span className="shrink-0 rounded-md bg-neutral-900 px-1.5 py-0.5 text-xs font-semibold text-white dark:bg-white dark:text-neutral-900">
-                {it.label}
-              </span>
-            )}
-            <span className="truncate font-medium">{it.name}</span>
-          </p>
+        {/* Minimal at-a-glance markers over the image (no text clutter). */}
+        {isSock && (
+          <span
+            title={stageMeta.hint}
+            aria-label={stageMeta.label}
+            className="absolute left-2 top-2 h-3 w-3 rounded-full ring-2 ring-white/80"
+            style={{ backgroundColor: stageMeta.dot }}
+          />
+        )}
+        {isSock && it.verified_at && (
+          <span
+            title="Label verified"
+            className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white"
+          >
+            ✓
+          </span>
+        )}
+        {it.label && (
+          <span className="absolute bottom-2 left-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+            {it.label}
+          </span>
+        )}
+      </div>
+
+      {/* Compact caption — name + one toggle for everything else. */}
+      <button
+        onClick={() => setDetailsOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left"
+      >
+        <span className="min-w-0 truncate text-sm font-medium">{it.name}</span>
+        <span aria-hidden className="shrink-0 text-xs text-muted">
+          {detailsOpen ? "Hide" : "Details"}
+        </span>
+      </button>
+
+      {detailsOpen && (
+        <div className="border-t border-line px-3 pb-3 pt-2">
+          {/* Metadata — only when details are open. */}
           <p className="text-xs capitalize text-muted">
             {prettyCategory(it.category)}
             {it.colour ? ` · ${it.colour}` : ""}
           </p>
           {it.dossier?.summary && (
-            <p className="mt-1 text-xs italic text-muted">
-              {it.dossier.summary}
-            </p>
+            <p className="mt-1 text-xs italic text-muted">{it.dossier.summary}</p>
           )}
           {it.description && (
             <p className="mt-1 whitespace-pre-line text-xs text-neutral-600 dark:text-neutral-300">
@@ -748,25 +790,6 @@ function ItemCard({
               {stageMeta.label}
             </span>
           )}
-          {isSock && it.verified_at && (
-            <span
-              title={`Label ${
-                it.label ? `“${it.label}” ` : ""
-              }confirmed from a photo on ${it.verified_at.slice(0, 10)}`}
-              className="ml-1.5 mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400"
-            >
-              <span aria-hidden>✓</span> Label verified
-              {it.label ? `: ${it.label}` : ""}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onDelete}
-          className="self-start text-xs text-muted hover:text-red-500"
-        >
-          Remove
-        </button>
-      </div>
 
       {/* Controls */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
@@ -805,24 +828,13 @@ function ItemCard({
             </button>
             {it.label && (
               <button
-                onClick={() => verifyInputRef.current?.click()}
+                onClick={verifyFromPhoto}
                 disabled={verifyBusy}
                 className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
               >
-                {verifyBusy ? "Verifying…" : "Verify"}
+                {verifyBusy ? "Reading photo…" : "Verify label"}
               </button>
             )}
-            <input
-              ref={verifyInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) verifyIdentity(f);
-                e.target.value = "";
-              }}
-            />
             <button
               onClick={toggleRetired}
               disabled={busy}
@@ -854,6 +866,12 @@ function ItemCard({
             Re-profile
           </button>
         )}
+        <button
+          onClick={onDelete}
+          className="text-muted hover:text-red-500"
+        >
+          Remove
+        </button>
       </div>
 
       {/* Verify result */}
@@ -1049,7 +1067,7 @@ function ItemCard({
                 onChange={(e) => setPlayed(e.target.checked)}
                 className="h-3.5 w-3.5 accent-neutral-900 dark:accent-white"
               />
-              Played sport in them
+              Played sport in them (counts much heavier)
             </label>
             <label className="flex items-center gap-1.5">
               <input
@@ -1068,6 +1086,8 @@ function ItemCard({
           >
             {busy ? "Saving…" : "Save wear"}
           </button>
+        </div>
+      )}
         </div>
       )}
     </div>

@@ -30,6 +30,20 @@ export function estimateSmell(
   );
 }
 
+// Playing sport in a pair is far harder on it than ordinary wear — it comes off
+// sweat-soaked, not just warm. So an hour of sport counts as several hours of
+// ordinary wear toward "hours since wash". Mike's rule of thumb: ~2h of sport
+// ≈ ~10h of normal wear, i.e. a 5× multiplier.
+export const SPORT_WEAR_MULTIPLIER = 5;
+
+// The wear hours a single logging event adds, given whether it was sport. Used
+// everywhere wear is logged (catalogue, task resolve, the reply box) so the
+// distinction is consistent across the app.
+export function wearHoursAdded(hours: number, sport: boolean): number {
+  const h = Math.max(0, Number(hours) || 0);
+  return sport ? h * SPORT_WEAR_MULTIPLIER : h;
+}
+
 export function smellOf(s: SockWearState): number {
   return estimateSmell(
     Number(s.worn_hours) || 0,

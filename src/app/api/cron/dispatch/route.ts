@@ -204,12 +204,126 @@ async function handle(request: Request) {
     }
   }
 
+  // (d) Daily rhythm — morning push (UTC 06:xx or 07:xx) and evening push
+  //     (UTC 20:xx or 21:xx). Each fires at most once per UTC day, gated by
+  //     rhythm_enabled (defaults ON, resilient pre-migration). Entirely separate
+  //     from the random nudge above.
+  const isMorningHour = utcHour === 6 || utcHour === 7;
+  const isEveningHour = utcHour === 20 || utcHour === 21;
+  let rhythmSent = 0;
+
+  if (isMorningHour || isEveningHour) {
+    const { data: rhythmSubUsers } = await admin
+      .from("bf_push_subs")
+      .select("user_id");
+    const rhythmUids = Array.from(
+      new Set((rhythmSubUsers ?? []).map((s) => s.user_id as string))
+    );
+
+    for (const uid of rhythmUids) {
+      // Read settings resiliently — missing columns are tolerated.
+      const { data: st } = await admin
+        .from("bf_settings")
+        .select("notifications_enabled, rhythm_enabled, last_morning_at, last_evening_at")
+        .eq("user_id", uid)
+        .maybeSingle();
+
+      if (st?.notifications_enabled === false) continue;
+      // rhythm_enabled defaults ON — only skip if explicitly false.
+      if ((st as { rhythm_enabled?: boolean | null } | null)?.rhythm_enabled === false) continue;
+
+      const lastMorning = (st as { last_morning_at?: string | null } | null)?.last_morning_at ?? null;
+      const lastEvening = (st as { last_evening_at?: string | null } | null)?.last_evening_at ?? null;
+
+      if (isMorningHour) {
+        // Already sent today?
+        if (lastMorning && lastMorning.slice(0, 10) === todayIso) continue;
+
+        const payload = {
+          title: "Good morning",
+          body: "Your day's waiting.",
+          url: "/?greet=morning",
+        };
+        const { data: subs } = await admin
+          .from("bf_push_subs")
+          .select("endpoint, p256dh, auth")
+          .eq("user_id", uid);
+        let delivered = false;
+        for (const sub of (subs ?? []) as StoredSub[]) {
+          try {
+            await sendPush(sub, payload);
+            rhythmSent += 1;
+            delivered = true;
+          } catch (err) {
+            const status = (err as { statusCode?: number }).statusCode;
+            if (status === 404 || status === 410) {
+              await admin
+                .from("bf_push_subs")
+                .delete()
+                .eq("endpoint", sub.endpoint);
+            } else {
+              console.error("[cron/dispatch] morning push error", status, err);
+            }
+          }
+        }
+        if (delivered) {
+          // Mark sent — no-ops pre-migration if the column doesn't exist yet.
+          await admin
+            .from("bf_settings")
+            .update({ last_morning_at: nowIso })
+            .eq("user_id", uid);
+        }
+      }
+
+      if (isEveningHour) {
+        // Already sent today?
+        if (lastEvening && lastEvening.slice(0, 10) === todayIso) continue;
+
+        const payload = {
+          title: "How did your feet fare?",
+          body: "Tell her about your day.",
+          url: "/?greet=evening",
+        };
+        const { data: subs } = await admin
+          .from("bf_push_subs")
+          .select("endpoint, p256dh, auth")
+          .eq("user_id", uid);
+        let delivered = false;
+        for (const sub of (subs ?? []) as StoredSub[]) {
+          try {
+            await sendPush(sub, payload);
+            rhythmSent += 1;
+            delivered = true;
+          } catch (err) {
+            const status = (err as { statusCode?: number }).statusCode;
+            if (status === 404 || status === 410) {
+              await admin
+                .from("bf_push_subs")
+                .delete()
+                .eq("endpoint", sub.endpoint);
+            } else {
+              console.error("[cron/dispatch] evening push error", status, err);
+            }
+          }
+        }
+        if (delivered) {
+          // Mark sent — no-ops pre-migration if the column doesn't exist yet.
+          await admin
+            .from("bf_settings")
+            .update({ last_evening_at: nowIso })
+            .eq("user_id", uid);
+        }
+      }
+    }
+  }
+
   const due = envRows.length + diaryRows.length;
   console.log("[cron/dispatch] done", {
     envelopes: envRows.length,
     diary: diaryRows.length,
     sent,
     nudged,
+    rhythmSent,
   });
   return NextResponse.json({
     due,
@@ -217,6 +331,7 @@ async function handle(request: Request) {
     diary: diaryRows.length,
     sent,
     nudged,
+    rhythmSent,
   });
 }
 

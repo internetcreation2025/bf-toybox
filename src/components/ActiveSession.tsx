@@ -5,11 +5,17 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { RARITY_META, type Rarity, type PlanStep } from "@/lib/decider";
-import { estimateSmell } from "@/lib/socks";
+import { estimateSmell, wearHoursAdded } from "@/lib/socks";
 import { PlanTimeline } from "@/components/PlanTimeline";
 
 // A pair she spotted in his answer that he might want logged as a wear.
-type WearSuggestion = { sockId: string; name: string; label: string | null; hours: number };
+type WearSuggestion = {
+  sockId: string;
+  name: string;
+  label: string | null;
+  hours: number;
+  sport: boolean;
+};
 
 type WearItem = { id: string; name: string; category?: string };
 type Slot = { label: string; activity: string; location: string };
@@ -101,18 +107,25 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         .select("worn_hours, played_count, dried_count")
         .eq("id", s.sockId)
         .maybeSingle();
-      const nHours = (Number(row?.worn_hours) || 0) + s.hours;
-      const played = Number(row?.played_count) || 0;
+      // Sport counts as far heavier wear (see wearHoursAdded) and bumps the
+      // played tally, so the smell/lifecycle reflect a sweat-soaked pair.
+      const nHours = (Number(row?.worn_hours) || 0) + wearHoursAdded(s.hours, s.sport);
+      const played = (Number(row?.played_count) || 0) + (s.sport ? 1 : 0);
       const dried = Number(row?.dried_count) || 0;
       await supabase
         .from("bf_footwear")
-        .update({ worn_hours: nHours, last_worn_at: new Date().toISOString() })
+        .update({
+          worn_hours: nHours,
+          played_count: played,
+          last_worn_at: new Date().toISOString(),
+        })
         .eq("id", s.sockId);
       // Audit trail (resilient — no-ops if bf_sock_log isn't there yet).
       await supabase.from("bf_sock_log").insert({
         sock_id: s.sockId,
         event: "worn",
         hours: s.hours,
+        played: s.sport ? 1 : 0,
         smell: estimateSmell(nHours, played, dried),
       });
       setLoggedSockIds((prev) => new Set(prev).add(s.sockId));
@@ -346,12 +359,13 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                   {wearSuggestions.map((s) => {
                     const done = loggedSockIds.has(s.sockId);
                     const who = s.label ? `${s.label} — ${s.name}` : s.name;
+                    const kind = s.sport ? `${s.hours}h of sport` : `${s.hours}h`;
                     return done ? (
                       <p
                         key={s.sockId}
                         className="flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400"
                       >
-                        <span aria-hidden>✓</span> Logged {s.hours}h on {who}
+                        <span aria-hidden>✓</span> Logged {kind} on {who}
                       </p>
                     ) : (
                       <button
@@ -361,7 +375,10 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                         className="flex w-full items-center justify-between rounded-lg border border-line px-3 py-2 text-left text-xs transition-colors hover:border-accent disabled:opacity-50"
                       >
                         <span>
-                          Log <strong>{s.hours}h</strong> on {who}?
+                          Log <strong>{kind}</strong> on {who}?
+                          {s.sport && (
+                            <span className="ml-1 text-muted">(counts heavier)</span>
+                          )}
                         </span>
                         <span aria-hidden className="text-accent">
                           {loggingSockId === s.sockId ? "…" : "Log →"}

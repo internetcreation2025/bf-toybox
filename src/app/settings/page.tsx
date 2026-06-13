@@ -233,6 +233,7 @@ function NotificationsSection() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [nudges, setNudges] = useState(true);
+  const [rhythm, setRhythm] = useState(true);
 
   useEffect(() => {
     if (!pushSupported()) {
@@ -243,13 +244,14 @@ function NotificationsSection() {
     currentSubscription()
       .then((s) => setEnabled(!!s))
       .catch(() => {});
-    // Random-nudge preference (resilient if the column isn't there yet).
+    // Random-nudge + rhythm preferences (resilient if the columns aren't there yet).
     supabase
       .from("bf_settings")
-      .select("nudges_enabled")
+      .select("nudges_enabled, rhythm_enabled")
       .maybeSingle()
       .then(({ data }) => {
         if (data && data.nudges_enabled === false) setNudges(false);
+        if (data && (data as { rhythm_enabled?: boolean | null }).rhythm_enabled === false) setRhythm(false);
       });
   }, [supabase]);
 
@@ -264,6 +266,22 @@ function NotificationsSection() {
         .from("bf_settings")
         .upsert(
           { user_id: user.id, nudges_enabled: next },
+          { onConflict: "user_id" }
+        );
+    }
+  }
+
+  async function toggleRhythm() {
+    const next = !rhythm;
+    setRhythm(next);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("bf_settings")
+        .upsert(
+          { user_id: user.id, rhythm_enabled: next },
           { onConflict: "user_id" }
         );
     }
@@ -355,22 +373,41 @@ function NotificationsSection() {
       {msg && <p className="mt-3 text-sm text-muted">{msg}</p>}
 
       {configured && supported !== false && (
-        <label className="mt-5 flex items-start gap-2.5 text-sm text-neutral-600 dark:text-neutral-300">
-          <input
-            type="checkbox"
-            checked={nudges}
-            onChange={toggleNudges}
-            className="mt-0.5 h-4 w-4 accent-neutral-900 dark:accent-white"
-          />
-          <span>
-            Let the Decider surprise me with the occasional “what&apos;s on your
-            feet?” nudge.
-            <span className="mt-0.5 block text-xs text-muted">
-              A few times a day at most, only in waking hours. Turn off for a
-              quieter life.
+        <>
+          <label className="mt-5 flex items-start gap-2.5 text-sm text-neutral-600 dark:text-neutral-300">
+            <input
+              type="checkbox"
+              checked={nudges}
+              onChange={toggleNudges}
+              className="mt-0.5 h-4 w-4 accent-neutral-900 dark:accent-white"
+            />
+            <span>
+              Let the Decider surprise me with the occasional &ldquo;what&apos;s
+              on your feet?&rdquo; nudge.
+              <span className="mt-0.5 block text-xs text-muted">
+                A few times a day at most, only in waking hours. Turn off for a
+                quieter life.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+
+          <label className="mt-4 flex items-start gap-2.5 text-sm text-neutral-600 dark:text-neutral-300">
+            <input
+              type="checkbox"
+              checked={rhythm}
+              onChange={toggleRhythm}
+              className="mt-0.5 h-4 w-4 accent-neutral-900 dark:accent-white"
+            />
+            <span>
+              Daily rhythm — her morning &amp; evening messages.
+              <span className="mt-0.5 block text-xs text-muted">
+                A quiet push at ~7am to set the day&apos;s tone, and another at
+                ~8pm to reflect on what you got up to. She remembers your
+                patterns.
+              </span>
+            </span>
+          </label>
+        </>
       )}
     </section>
   );

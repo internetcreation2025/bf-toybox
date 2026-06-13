@@ -28,13 +28,13 @@ export async function POST(request: Request) {
     id?: string;
     image?: string;
   };
-  if (!id || !image) {
-    return NextResponse.json({ error: "id and image required" }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ error: "id required" }, { status: 400 });
   }
 
   const { data: sock, error: sockErr } = await supabase
     .from("bf_footwear")
-    .select("id, label, name")
+    .select("id, label, name, photo_path")
     .eq("id", id)
     .single();
   if (sockErr || !sock) {
@@ -47,9 +47,31 @@ export async function POST(request: Request) {
     );
   }
 
-  // Strip the data-URL prefix → raw base64 → sniff the real type.
-  const base64 = image.includes(",") ? image.split(",")[1] : image;
-  const buf = Buffer.from(base64, "base64");
+  // Use the photo Mike uploaded just now if one was passed; otherwise fall back
+  // to the pair's EXISTING catalogue photo — no new upload needed.
+  let buf: Buffer;
+  if (image) {
+    const base64 = image.includes(",") ? image.split(",")[1] : image;
+    buf = Buffer.from(base64, "base64");
+  } else {
+    if (!sock.photo_path) {
+      return NextResponse.json(
+        { error: "This pair has no photo yet. Add a photo of it first." },
+        { status: 400 }
+      );
+    }
+    const { data: file, error: dlErr } = await supabase.storage
+      .from("bf-feet")
+      .download(sock.photo_path as string);
+    if (dlErr || !file) {
+      return NextResponse.json(
+        { error: "Couldn't open this pair's photo. Try re-uploading it." },
+        { status: 400 }
+      );
+    }
+    buf = Buffer.from(await file.arrayBuffer());
+  }
+
   const mediaType = sniffImageType(buf);
   if (!mediaType) {
     return NextResponse.json(
@@ -73,7 +95,7 @@ export async function POST(request: Request) {
             },
             {
               type: "text",
-              text: `This is a proof photo of a sock. Somewhere on it is a small hand-written label/code (e.g. "S1", "S1a", "D2b"). Read that code exactly as written, the right way up. Reply with ONLY the code — nothing else. If you genuinely cannot find any label, reply with exactly: NONE`,
+              text: `This is a photo of a sock. Somewhere on it there may be a small hand-written label/code (e.g. "S1", "S1a", "D2b"). Read that code exactly as written, the right way up. Reply with ONLY the code — nothing else. If you genuinely cannot find any label in the photo, reply with exactly: NONE`,
             },
           ],
         },
