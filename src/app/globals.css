@@ -22,5 +22,15 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Utility: clear the iOS home indicator / notch for fixed app chrome. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.h-safe-nav {
+  height: calc(4rem + env(safe-area-inset-bottom));
 }

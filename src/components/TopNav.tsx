@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/feet", label: "Feet" },
   { href: "/archive", label: "Archive" },
   { href: "/stats", label: "Stats" },
+  { href: "/reports", label: "Reports" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -24,7 +25,7 @@ export function TopNav() {
   }
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/80">
+    <nav className="sticky top-0 z-40 hidden border-b border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/80 sm:block">
       <div className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 py-2">
         {LINKS.map((l) => {
           const active =

@@ -17,7 +17,6 @@ type Item = {
   name: string;
   category: string;
   colour: string | null;
-  notes: string | null;
   description: string | null;
   photo_path: string | null;
   dossier: Dossier | null;
@@ -56,7 +55,6 @@ export default function CataloguePage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<FootwearCategory>("trainers");
   const [colour, setColour] = useState("");
-  const [notes, setNotes] = useState("");
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [sockless, setSockless] = useState<SocklessPref>("unset");
@@ -118,7 +116,6 @@ export default function CataloguePage() {
           name: name.trim(),
           category,
           colour: colour.trim() || null,
-          notes: notes.trim() || null,
         })
         .select("id")
         .single();
@@ -165,7 +162,6 @@ export default function CataloguePage() {
 
       setName("");
       setColour("");
-      setNotes("");
       setDescription("");
       setPhoto(null);
       setCategory("trainers");
@@ -231,12 +227,6 @@ export default function CataloguePage() {
             value={colour}
             onChange={(e) => setColour(e.target.value)}
             placeholder="Colour (optional)"
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-          />
-          <input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notes (optional)"
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
           />
           {category === "socks" && (
@@ -391,7 +381,6 @@ function ItemCard({
   const [eName, setEName] = useState(it.name);
   const [eCategory, setECategory] = useState(it.category);
   const [eColour, setEColour] = useState(it.colour ?? "");
-  const [eNotes, setENotes] = useState(it.notes ?? "");
   const [ePhoto, setEPhoto] = useState<File | null>(null);
   const [eSockless, setESockless] = useState<SocklessPref>(
     boolToPref(it.sockless_ok)
@@ -404,7 +393,6 @@ function ItemCard({
     setEName(it.name);
     setECategory(it.category);
     setEColour(it.colour ?? "");
-    setENotes(it.notes ?? "");
     setEPhoto(null);
     setESockless(boolToPref(it.sockless_ok));
     setELabel(it.label ?? "");
@@ -427,7 +415,6 @@ function ItemCard({
           name: eName.trim(),
           category: eCategory,
           colour: eColour.trim() || null,
-          notes: eNotes.trim() || null,
         })
         .eq("id", it.id);
 
@@ -980,12 +967,6 @@ function ItemCard({
               className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
             />
           </div>
-          <input
-            value={eNotes}
-            onChange={(e) => setENotes(e.target.value)}
-            placeholder="Notes (optional)"
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-          />
           {eCategory === "socks" && (
             <input
               value={eLabel}
