@@ -140,18 +140,24 @@ export default async function Home() {
         </section>
       )}
 
-      <Link
-        href="/roll?plan=1"
-        className="mt-8 flex items-center justify-between rounded-2xl bg-accent p-5 text-on-accent shadow-sm transition-transform hover:-translate-y-0.5"
-      >
-        <span>
-          <span className="text-base font-semibold">Plan my day</span>
-          <span className="mt-0.5 block text-xs opacity-80">
-            Pulls your calendar and lays out the day, foot by foot.
+      {activeSessions.length === 0 ? (
+        <Link
+          href="/roll?plan=1"
+          className="mt-8 flex items-center justify-between rounded-2xl bg-accent p-5 text-on-accent shadow-sm transition-transform hover:-translate-y-0.5"
+        >
+          <span>
+            <span className="text-base font-semibold">Plan my day</span>
+            <span className="mt-0.5 block text-xs opacity-80">
+              Pulls your calendar and lays out the day, foot by foot.
+            </span>
           </span>
-        </span>
-        <span aria-hidden className="text-lg">→</span>
-      </Link>
+          <span aria-hidden className="text-lg">→</span>
+        </Link>
+      ) : (
+        <p className="mt-8 rounded-2xl border border-line bg-surface-2 p-4 text-center text-sm text-muted">
+          You&apos;ve a day in play above. Cancel it to plan a new one.
+        </p>
+      )}
 
       <p className="mt-10 text-center text-xs text-muted">
         Plan your day, complete it, keep the streak alive.

@@ -210,6 +210,28 @@ export async function POST(request: Request) {
     );
   }
 
+  // One day in play at a time. A fresh roll is refused while a session is still
+  // active — you can't overwrite it, only cancel it and start again. (A double-
+  // or-nothing re-roll is part of the SAME session, so it's allowed and will
+  // supersede the verdict it's doubling.)
+  if (!body.doubleOrNothing) {
+    const { data: activeRows } = await supabase
+      .from("bf_challenges")
+      .select("id")
+      .in("status", ["issued", "sealed"])
+      .limit(1);
+    if (activeRows && activeRows.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "You've a day in play. Cancel it from the home screen first, then plan a new one.",
+          code: "active_session",
+        },
+        { status: 409 }
+      );
+    }
+  }
+
   const { data: settings } = await supabase
     .from("bf_settings")
     .select("*")
@@ -511,6 +533,16 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
     status: sealedUntil ? "sealed" : "issued",
     sealed_until: sealedUntil,
   };
+
+  // Double-or-nothing replaces the verdict it's doubling, so retire any active
+  // issued challenge before inserting the spicier one — never leave two in play.
+  if (body.doubleOrNothing) {
+    await supabase
+      .from("bf_challenges")
+      .update({ status: "cancelled", archived_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .eq("status", "issued");
+  }
 
   // Try to store the wear picks + day plan; if those columns aren't there yet
   // (migration not run), fall back step by step so the roll still works.
