@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { resizeImage } from "@/lib/image";
 
-// A single podiatry action the Decider advises or Mike sets himself — e.g.
-// "trim right big toenail", "file hard skin on left heel". Each keeps a
-// before and an after photo so progress is visible, and the Decider can
-// compare the two and confirm it's done properly.
+// A single podiatry action the DECIDER asks for — e.g. "trim right big toenail",
+// "file hard skin on left heel". She decides when care is warranted (Mike can't
+// set these himself). Each keeps a before and an after photo so progress is
+// visible, and she compares the two and confirms it's done properly.
 type CareRow = {
   id: string;
   area: string;
@@ -25,9 +25,8 @@ export function FootCare() {
   const [rows, setRows] = useState<CareRow[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [tableReady, setTableReady] = useState(true);
-  const [area, setArea] = useState("");
-  const [action, setAction] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [verdict, setVerdict] = useState<string>("");
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -66,25 +65,25 @@ export function FootCare() {
     load();
   }, [load]);
 
-  async function addTask(e: React.FormEvent) {
-    e.preventDefault();
-    if (!userId || !area.trim() || !action.trim()) return;
-    setSaving(true);
+  async function askDeciderToCheck() {
+    setChecking(true);
     setError("");
-    const { error: insErr } = await supabase.from("bf_foot_care").insert({
-      user_id: userId,
-      area: area.trim(),
-      action: action.trim(),
-    });
-    setSaving(false);
-    if (insErr) {
-      setError("Run the foot-care SQL first, then add the task.");
-      setTableReady(false);
-      return;
+    setVerdict("");
+    try {
+      const res = await fetch("/api/feet/care-request", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't ask the Decider");
+      setVerdict(
+        json.needed
+          ? `${json.message ? json.message + " " : ""}She's set a task: ${json.area} — ${json.action}.`
+          : json.message || "Your feet look well kept — nothing to do right now."
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't ask the Decider");
+    } finally {
+      setChecking(false);
     }
-    setArea("");
-    setAction("");
-    await load();
   }
 
   if (!tableReady) {
@@ -103,44 +102,39 @@ export function FootCare() {
 
   return (
     <section className="mt-10">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-        Foot care
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          Foot care
+        </h2>
+        <button
+          type="button"
+          onClick={askDeciderToCheck}
+          disabled={checking}
+          className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        >
+          {checking ? "She's looking…" : "Ask the Decider to check my feet"}
+        </button>
+      </div>
       <p className="mt-1 text-sm text-neutral-500">
-        Podiatry tasks — trim a nail, file hard skin, treat a spot. Keep a
-        before and an after photo, and the Decider will check it&apos;s done
-        properly.
+        Care is the Decider&apos;s call. She looks over your feet and, only if
+        something genuinely needs doing — a nail, hard skin, dryness — she sets
+        the task. Add a before and an after photo, and she&apos;ll confirm it was
+        done properly.
       </p>
 
-      <form
-        onSubmit={addTask}
-        className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
-      >
-        <input
-          value={area}
-          onChange={(e) => setArea(e.target.value)}
-          placeholder="Area, e.g. right big toenail"
-          className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-        />
-        <input
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          placeholder="Action, e.g. trim straight across"
-          className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
-        />
-        <button
-          type="submit"
-          disabled={saving || !area.trim() || !action.trim()}
-          className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
-        >
-          {saving ? "Adding…" : "Add task"}
-        </button>
-      </form>
+      {verdict && (
+        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm italic leading-relaxed text-neutral-700 dark:bg-neutral-950 dark:text-neutral-200">
+          {verdict}
+        </p>
+      )}
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
 
       <div className="mt-4 space-y-3">
         {rows.length === 0 && (
-          <p className="text-sm text-neutral-400">No care tasks yet.</p>
+          <p className="text-sm text-neutral-400">
+            No care tasks. The Decider hasn&apos;t asked for anything — tap above
+            to have her check.
+          </p>
         )}
         {rows.map((r) => (
           <CareCard
