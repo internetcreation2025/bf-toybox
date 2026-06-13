@@ -204,7 +204,7 @@ export default function WhatsOnPage() {
             onClick={() => setOnFeet(q)}
             className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
               onFeet === q
-                ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                ? "border-accent bg-accent text-on-accent"
                 : "border-line hover:border-accent dark:border-line"
             }`}
           >
@@ -223,7 +223,7 @@ export default function WhatsOnPage() {
       <button
         onClick={send}
         disabled={busy || !onFeet.trim()}
-        className="mt-5 w-full rounded-xl bg-neutral-900 p-4 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+        className="mt-5 w-full rounded-xl bg-accent p-4 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {busy ? "Asking her…" : "Tell the Decider"}
       </button>
@@ -260,7 +260,7 @@ export default function WhatsOnPage() {
           <div className="mt-4 flex items-center gap-4 text-xs">
             <button
               onClick={() => setTask(null)}
-              className="rounded-lg bg-neutral-900 px-3 py-1.5 font-medium text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
+              className="rounded-lg bg-accent px-3 py-1.5 font-medium text-on-accent hover:opacity-90"
             >
               Done
             </button>
@@ -341,7 +341,7 @@ export default function WhatsOnPage() {
                 <button
                   onClick={() => proofRef.current?.click()}
                   disabled={revealBusy}
-                  className="mt-4 w-full rounded-xl bg-neutral-900 p-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+                  className="mt-4 w-full rounded-xl bg-accent p-3 text-sm font-medium text-on-accent hover:opacity-90 disabled:opacity-50"
                 >
                   {revealBusy ? "Checking…" : "Take the photo"}
                 </button>

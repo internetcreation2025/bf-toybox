@@ -316,7 +316,7 @@ export default function RollPage() {
           <button
             disabled={!scheduleComplete}
             onClick={() => setStep("footwear")}
-            className="mt-4 w-full rounded-lg bg-neutral-900 px-4 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+            className="mt-4 w-full rounded-lg bg-accent px-4 py-3 text-sm font-medium text-on-accent hover:opacity-90 disabled:opacity-40"
           >
             {scheduleComplete ? "Next" : "Add a block with a time and activity to continue"}
           </button>
@@ -349,7 +349,7 @@ export default function RollPage() {
                   }
                   className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                     on
-                      ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                      ? "border-accent bg-accent text-on-accent"
                       : "border-line"
                   }`}
                 >
@@ -399,7 +399,7 @@ export default function RollPage() {
                       }
                       className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                         on
-                          ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                          ? "border-accent bg-accent text-on-accent"
                           : "border-line"
                       }`}
                     >
@@ -498,7 +498,7 @@ export default function RollPage() {
                     onClick={() => setSealMinutes(o.minutes)}
                     className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                       sealMinutes === o.minutes
-                        ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
+                        ? "border-accent bg-accent text-on-accent"
                         : "border-line"
                     }`}
                   >
@@ -521,7 +521,7 @@ export default function RollPage() {
             <button
               disabled={onHand.length === 0 || rolling}
               onClick={() => doRoll({ sealMinutes: seal ? sealMinutes : 0 })}
-              className="flex-1 rounded-lg bg-neutral-900 px-4 py-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+              className="flex-1 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-on-accent hover:opacity-90 disabled:opacity-40"
             >
               {rolling
                 ? seal
@@ -549,7 +549,7 @@ export default function RollPage() {
               {result.proofRequired && (
                 <Link
                   href={`/proof/${result.id}`}
-                  className="block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold text-white hover:opacity-90"
+                  className="block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold text-on-accent hover:opacity-90"
                   style={{ backgroundColor: "#a855f7" }}
                 >
                   Submit proof now →
@@ -566,7 +566,7 @@ export default function RollPage() {
               )}
               <Link
                 href="/"
-                className="block w-full rounded-lg bg-neutral-900 px-4 py-3 text-center text-sm font-medium text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
+                className="block w-full rounded-lg bg-accent px-4 py-3 text-center text-sm font-medium text-on-accent hover:opacity-90"
               >
                 Done
               </Link>
