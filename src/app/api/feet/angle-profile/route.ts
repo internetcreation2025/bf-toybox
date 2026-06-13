@@ -77,7 +77,7 @@ export async function POST(request: Request) {
             ...images,
             {
               type: "text",
-              text: `These are ${images.length} reference photo(s) of Mike's "${angleLabel}". Write ONE consolidated identity profile of this exact view of his foot — the persistent, recognisable features that let you pick it out and verify it later: overall shape and proportions, toe/nail shape and order, skin tone, and any distinctive marks, lines, scars, calluses or quirks. Synthesise across all the photos; ignore differences that are just lighting or angle. 3 to 5 sentences, plain prose, no preamble, no markdown.`,
+              text: `These are ${images.length} photo(s) of MY OWN "${angleLabel}", from my personal foot journal. Write ONE consolidated description of how this view of my foot looks — overall shape and proportions, the toes and nails, skin condition, and anything notable like dry patches, calluses or marks worth tracking over time. Synthesise across the photos; ignore differences that are just lighting or angle. These are my own notes about my own feet, for my records. 3 to 5 sentences, plain prose, no preamble, no markdown.`,
             },
           ],
         },

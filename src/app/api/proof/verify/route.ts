@@ -231,7 +231,7 @@ export async function POST(request: Request) {
   }
   content.push({
     type: "text",
-    text: `Stored visual fingerprints of the owner's feet:\n\n${fingerprintText}`,
+    text: `My own notes describing my feet (from my catalogue):\n\n${fingerprintText}`,
   });
   content.push({
     type: "text",
@@ -243,14 +243,14 @@ export async function POST(request: Request) {
   });
   content.push({
     type: "text",
-    text: `You are the forensic verifier for a private footwear dare game.
+    text: `You are helping me check my OWN proof photo in a private, single-player footwear game I play with myself. The reference photos and notes are of MY OWN feet, from my own catalogue. This is a consensual self-check — the only person involved is me.
 
-The owner was set this dare:
+My dare was:
 "${challenge.instruction}"
 
-Verify the PROOF photo against the owner's known feet and the dare's required elements.
+Check the PROOF photo against my own catalogued feet and the dare's required elements.
 
-1. Decide if the bare feet in the PROOF photo are the SAME person's feet as the references/fingerprints. Use stable features (toe ordering, nail shape, moles/scars, proportions) — ignore lighting and angle. Be strict but fair.
+1. Decide whether the bare feet in the PROOF photo are consistent with my own catalogued feet (so I can't cheat by submitting someone else's or a stock photo). Use stable features (toe ordering, nail shape, marks, proportions) — ignore lighting and angle. Be fair.
 2. Give a match confidence from 0 to 100.
 3. For EACH required element below, decide if it is clearly present in the proof photo.
 ${

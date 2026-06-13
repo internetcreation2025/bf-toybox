@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     }
   }
   if (fpText) {
-    content.push({ type: "text", text: `Stored fingerprints of his feet:\n${fpText}` });
+    content.push({ type: "text", text: `My own notes describing my feet:\n${fpText}` });
   }
   content.push({ type: "text", text: "PROOF photo submitted right now:" });
   content.push({
@@ -112,8 +112,8 @@ export async function POST(request: Request) {
     type: "text",
     text: `You are ${DECIDER_VOICE}
 
-You asked him: "${asked.trim()}". Judge the PROOF photo.
-1. Is this a real bare human foot that plausibly belongs to him (consistent with the reference/fingerprints — stable features, not lighting)? Be fair, not paranoid.
+This is Mike checking his OWN photo in his own private game — the reference notes are of his own feet, from his own catalogue. You asked him: "${asked.trim()}". Judge the PROOF photo.
+1. Is this a real bare foot, consistent with his own catalogued feet (so he isn't cheating with someone else's photo)? Be fair, not paranoid.
 2. Does it show what you asked for?
 
 Return ONLY JSON: { "own_foot": true/false, "shows_requested": true/false, "line": "one short sentence to Mike in your voice about the result" }`,

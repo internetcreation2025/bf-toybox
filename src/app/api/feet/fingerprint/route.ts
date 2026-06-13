@@ -85,18 +85,15 @@ export async function POST(request: Request) {
               type: "text",
               text: `${
                 ref.label
-                  ? `This is an EXTREME close-up of one specific spot on the owner's foot: "${ref.label}". Write a concise but detailed visual fingerprint of THIS EXACT SPOT, to later recognise it again.`
-                  : `This is a reference photo of the owner's own foot. Angle: "${ref.angle}". Write a concise but detailed visual fingerprint to later match new photos to this same foot.`
+                  ? `This is a close-up of one spot on MY OWN foot — "${ref.label}" — that I'm keeping in my personal foot-care journal. Describe what's visible so I have a clear written note to compare against later and notice changes.`
+                  : `This is a photo of MY OWN foot (view: "${ref.angle}") for my personal foot-care and footwear journal. Describe what's visible so I have a written note for my own records.`
               }
-Focus ONLY on stable, identifying features — ignore lighting, background, and pose:
-- relative toe lengths / ordering
-- toenail shape and any distinctive nails
-- freckles, moles, or scars (approximate position)
-- prominent veins or tendons
-- knuckle / joint prominences
-- arch shape and overall proportions
-- skin tone
-Return 4-8 short bullet points. No preamble, no caveats.`,
+Cover it factually and briefly — ignore lighting and background:
+- overall shape and proportions of what's shown
+- the toenail(s) and toe shape
+- skin condition (dry skin, calluses, hard skin)
+- anything worth keeping an eye on over time (marks, dryness, wear)
+These are my own notes about my own feet, for tracking their condition and footwear over time. Return 4-6 short bullet points. No preamble, no caveats.`,
             },
           ],
         },

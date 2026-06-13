@@ -29,6 +29,7 @@ export default function FeetPage() {
   const [detailLabel, setDetailLabel] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const [openReadings, setOpenReadings] = useState<Record<string, boolean>>({});
+  const [rereading, setRereading] = useState<string | null>(null);
   const [requests, setRequests] = useState<
     Array<{ id: string; label: string; reason: string | null }>
   >([]);
@@ -120,6 +121,28 @@ export default function FeetPage() {
       setError(e instanceof Error ? e.message : "Couldn't build the profile");
     } finally {
       setProfiling(null);
+    }
+  }
+
+  // Re-run the AI reading on a spot's latest photo (e.g. after a prompt fix, or
+  // if the first read came back empty).
+  async function rereadDetail(label: string, id: string) {
+    setRereading(label);
+    setError("");
+    try {
+      const res = await fetch("/api/feet/fingerprint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't read that spot");
+      await load();
+      setOpenReadings((o) => ({ ...o, [label]: true }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't read that spot");
+    } finally {
+      setRereading(null);
     }
   }
 
@@ -439,6 +462,20 @@ export default function FeetPage() {
                       {reading ? "Hide reading" : "What it sees"}
                     </button>
                   )}
+                  <button
+                    type="button"
+                    disabled={rereading === label}
+                    onClick={() =>
+                      rereadDetail(label, rows[rows.length - 1].id)
+                    }
+                    className="text-xs text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+                  >
+                    {rereading === label
+                      ? "Reading…"
+                      : latestRead
+                      ? "Re-read"
+                      : "Read it"}
+                  </button>
                   <button
                     type="button"
                     disabled={detailBusy}
