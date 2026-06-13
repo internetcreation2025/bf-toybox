@@ -68,7 +68,8 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ challengeId: challenge.id, answer: replyText.trim() }),
       });
-      const json = await res.json();
+      const raw = await res.text();
+      const json = raw ? JSON.parse(raw) : {};
       if (!res.ok) throw new Error(json.error || "Couldn't send that.");
       setReplyResponse(json.reply || "Noted.");
       setReplyText("");

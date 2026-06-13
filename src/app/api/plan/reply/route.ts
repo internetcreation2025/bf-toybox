@@ -37,9 +37,12 @@ export async function POST(request: Request) {
     .from("bf_challenges")
     .select("plan_json, instruction")
     .eq("id", challengeId)
-    .single();
-  const plan = (ch?.plan_json as PlanStep[] | null) ?? [];
-  const planText = plan
+    .maybeSingle();
+  // plan_json is the wrapper object { steps, before, carryover } — not a bare
+  // array. Read steps defensively so a missing/odd shape can never crash here.
+  const pj = (ch?.plan_json ?? null) as { steps?: PlanStep[] } | null;
+  const steps = Array.isArray(pj?.steps) ? pj!.steps : [];
+  const planText = steps
     .map((s) => `${s.when} — ${s.activity}: ${s.do}`)
     .join("\n")
     .slice(0, 2500);
