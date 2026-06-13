@@ -367,7 +367,7 @@ ${schedule
 
 ${timeContext}
 
-Footwear on hand right now (pick from these — use the wear state + dossier to choose well):
+Footwear on hand right now (pick from these — use the wear state + dossier to choose well). Each line starts with a bracketed code like [F1] — that code is FOR YOUR INTERNAL USE ONLY (the "wear_refs" field). NEVER write a [F#] code in any text Mike reads. In everything he sees, name a SHOE by its description/name and a SOCK by its written label only (e.g. "S2"); never show the code, and don't refer to a sock by anything but its label:
 ${footwearLines.join("\n")}
 ${
   wearing.names.length
@@ -415,7 +415,7 @@ Today's date: ${today} (ISO ${todayIso})
 Rolled rarity: ${rarity.toUpperCase()}. Tier directive: ${brief.guide}
 Verdict type: ${brief.verdictType}. Photo proof required: ${brief.proofRequired}
 
-BUILD A CHRONOLOGICAL DAY PLAN — do NOT collapse the day into a single moment. Walk his schedule IN ORDER, one step per block, covering EVERY block (even mundane ones, briefly). For each block say what to wear (name the specific [F#] footwear AND socks, or sockless) and how to prep for it, and in "after" what to do with his feet/socks straight afterwards to hand over into the next block — thread the CARRY-OVER through the day (e.g. keep the damp padel socks bagged, slip shoes on sockless for the drive, bring them in at the end). Mark ONE block (occasionally two) with "headline": true — the standout/bonus moment that carries the rolled tier's daringness; any photo proof is about that headline moment. The "instruction" field should summarise that headline moment in one or two sentences (it's what shows in the archive and on the proof screen).
+BUILD A CHRONOLOGICAL DAY PLAN — do NOT collapse the day into a single moment. Walk his schedule IN ORDER, one step per block, covering EVERY block (even mundane ones, briefly). For each block say what to wear — name the shoes by their description and the socks by their written label (or sockless) — and how to prep for it, and in "after" what to do with his feet/socks straight afterwards to hand over into the next block — thread the CARRY-OVER through the day (e.g. keep the damp padel socks bagged, slip shoes on sockless for the drive, bring them in at the end). Mark ONE block (occasionally two) with "headline": true — the standout/bonus moment that carries the rolled tier's daringness; any photo proof is about that headline moment. The "instruction" field should summarise that headline moment in one or two sentences (it's what shows in the archive and on the proof screen).
 
 Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
 {
@@ -423,7 +423,7 @@ Return ONLY a JSON object (no markdown, no commentary), with exactly these keys:
   "flavor": "one short punchy line in the persona voice, the theme of the whole day",
   "before": "anything to prepare BEFORE the day starts, or carried over from earlier (e.g. socks you bagged last week) — empty string if none",
   "plan": [
-    { "when": "time label for this block, e.g. 1–2pm", "activity": "the activity and place", "do": "what to wear (name specific [F#] items + socks, or sockless) and how to prep for it", "after": "what to do with feet/socks straight after this block to set up the next — keep/air/bag/change/carry; omit the key if nothing", "headline": false }
+    { "when": "time label for this block, e.g. 1–2pm", "activity": "the activity and place", "do": "what to wear (shoes by description, socks by their label, or sockless) and how to prep for it — NO [F#] codes", "after": "what to do with feet/socks straight after this block to set up the next — keep/air/bag/change/carry; omit the key if nothing", "headline": false }
   ],
   "carryover": "the through-line carried across the whole day and how it ends — empty string if none",
   "proof_elements": ${

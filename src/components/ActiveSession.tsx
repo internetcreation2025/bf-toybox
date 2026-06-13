@@ -51,6 +51,34 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const [editingSchedule, setEditingSchedule] = useState(false);
   const [amending, setAmending] = useState(false);
 
+  // Replying to the Decider's questions about the day (e.g. "what did you wear
+  // round town?").
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replyBusy, setReplyBusy] = useState(false);
+  const [replyResponse, setReplyResponse] = useState("");
+
+  async function sendReply() {
+    if (!replyText.trim()) return;
+    setReplyBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/plan/reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId: challenge.id, answer: replyText.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't send that.");
+      setReplyResponse(json.reply || "Noted.");
+      setReplyText("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send that.");
+    } finally {
+      setReplyBusy(false);
+    }
+  }
+
   const loadPlan = useCallback(async () => {
     // schedule_json always exists; plan_json may not pre-migration, so read it
     // defensively and fall back.
@@ -258,6 +286,50 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
             <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-200">
               {challenge.instruction}
             </p>
+          )}
+
+          {/* Answer the Decider's questions about the day */}
+          {plan.length > 0 && (
+            <div className="mt-4 border-t border-line pt-3">
+              {replyResponse && (
+                <p className="mb-3 rounded-lg bg-surface-2 p-3 text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
+                  {replyResponse}
+                </p>
+              )}
+              {replyOpen ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    rows={3}
+                    placeholder="Answer her — e.g. “barefoot on the kitchen tiles, then my white S2 socks round town.”"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={sendReply}
+                      disabled={replyBusy || !replyText.trim()}
+                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-on-accent hover:opacity-90 disabled:opacity-50"
+                    >
+                      {replyBusy ? "Sending…" : "Send to the Decider"}
+                    </button>
+                    <button
+                      onClick={() => setReplyOpen(false)}
+                      className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-foreground"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setReplyOpen(true)}
+                  className="text-sm font-medium text-muted hover:text-foreground"
+                >
+                  Tell her what happened →
+                </button>
+              )}
+            </div>
           )}
         </>
       )}
