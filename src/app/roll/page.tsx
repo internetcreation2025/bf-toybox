@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { type Rarity, type PlanStep } from "@/lib/decider";
-import { listEventsForDay } from "@/lib/gcal";
+import { buildDaySchedule, type DayEvent } from "@/lib/day-schedule";
 import { VerdictCard } from "@/components/VerdictCard";
 
 type Slot = { label: string; activity: string; location: string };
@@ -75,36 +75,37 @@ export default function RollPage() {
     setSlots((prev) => prev.filter((_, j) => j !== i));
   }
 
-  // ── Google Calendar pull ──
+  // ── Whole-day plan from the connected (offline) Google Calendar ──
   const [gcalBusy, setGcalBusy] = useState(false);
   const [gcalMsg, setGcalMsg] = useState("");
+  const [wholeDay, setWholeDay] = useState(false);
 
-  function fmtTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  }
-
-  async function pullCalendar() {
+  async function planWholeDay() {
     setGcalBusy(true);
     setGcalMsg("");
     try {
-      const events = await listEventsForDay(date);
-      if (events.length === 0) {
-        setGcalMsg("No timed events found on your calendar that day.");
+      const timeMin = new Date(`${date}T00:00:00`).toISOString();
+      const timeMax = new Date(`${date}T23:59:59`).toISOString();
+      const res = await fetch(
+        `/api/calendar/today?timeMin=${timeMin}&timeMax=${timeMax}`
+      );
+      const json = await res.json();
+      if (!json.connected) {
+        setGcalMsg(
+          "Your Google Calendar isn't connected yet — connect it in Settings."
+        );
         return;
       }
-      setSlots(
-        events.map((e) => ({
-          label: `${fmtTime(e.startIso)}–${fmtTime(e.endIso)}`,
-          activity: e.summary,
-          location: e.location,
-        }))
+      const events = (json.events ?? []) as DayEvent[];
+      setSlots(buildDaySchedule(events));
+      setWholeDay(true);
+      // For a whole day at home base, everything he owns is on hand.
+      setSelected(new Set(catalogue.map((c) => c.name)));
+      setGcalMsg(
+        `Built your day from ${events.length} calendar event(s) — review, then continue.`
       );
-      setGcalMsg(`Pulled ${events.length} event(s) — tweak them, then continue.`);
     } catch (e) {
-      setGcalMsg(e instanceof Error ? e.message : "Calendar pull failed.");
+      setGcalMsg(e instanceof Error ? e.message : "Couldn't read your calendar.");
     } finally {
       setGcalBusy(false);
     }
@@ -186,6 +187,7 @@ export default function RollPage() {
             minute: "2-digit",
           }),
           clientToday: todayIso,
+          wholeDay,
         }),
       });
       const json = await res.json();
@@ -220,12 +222,10 @@ export default function RollPage() {
       {/* STEP 1 — schedule */}
       {step === "schedule" && (
         <div className="mt-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            The next few hours
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Your day</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Block out your plans in your own words — set the time for each, what
-            you&apos;re doing, and where.
+            Pull your whole day from your calendar in one tap, or block it out by
+            hand — set the time, what you&apos;re doing, and where.
           </p>
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -253,11 +253,11 @@ export default function RollPage() {
 
           <button
             type="button"
-            onClick={pullCalendar}
+            onClick={planWholeDay}
             disabled={gcalBusy}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
           >
-            {gcalBusy ? "Reading your calendar…" : "Pull from Google Calendar"}
+            {gcalBusy ? "Reading your calendar…" : "Plan my whole day from calendar"}
           </button>
           {gcalMsg && (
             <p className="mt-2 text-xs text-neutral-500">{gcalMsg}</p>

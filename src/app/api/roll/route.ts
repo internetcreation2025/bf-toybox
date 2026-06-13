@@ -170,6 +170,7 @@ export async function POST(request: Request) {
     sealMinutes?: number;
     nowLabel?: string;
     clientToday?: string;
+    wholeDay?: boolean;
   };
   const schedule = body.schedule ?? [];
   const footwear = body.footwear ?? [];
@@ -348,8 +349,12 @@ export async function POST(request: Request) {
 Persona — write ALL player-facing text in this voice: ${PERSONAS[persona].voice}
 
 ${normalityBlock(settings?.normality as string | null | undefined)}
-
-The owner's next 4 hours:
+${
+  body.wholeDay
+    ? `\nWHOLE-DAY PLAN — the schedule below is his ENTIRE day, pulled from his calendar. Cover it from morning to night, in order. Any gap, or any stretch with no entry, means he is at home (socks or barefoot, as fits). He sleeps barefoot roughly 11pm–7am, so you may bookend the plan with winding down to bed and waking. Give him the day's footwear decisions across the whole day, not just one moment.\n`
+    : ""
+}
+The owner's schedule:
 ${schedule
   .map(
     (s, i) =>
