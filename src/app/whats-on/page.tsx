@@ -23,6 +23,7 @@ export default function WhatsOnPage() {
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState("");
   const [compliant, setCompliant] = useState<boolean | null>(null);
+  const [penalty, setPenalty] = useState("");
   const [error, setError] = useState("");
 
   // "Show me your feet" proof flow.
@@ -57,6 +58,7 @@ export default function WhatsOnPage() {
     setError("");
     setReply("");
     setCompliant(null);
+    setPenalty("");
     try {
       const res = await fetch("/api/whats-on", {
         method: "POST",
@@ -71,6 +73,7 @@ export default function WhatsOnPage() {
       if (!res.ok) throw new Error(json.error || "She didn't answer — try again.");
       setReply(json.reply);
       setCompliant(json.compliant ?? null);
+      setPenalty(json.penalty ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -264,6 +267,16 @@ export default function WhatsOnPage() {
           >
             {reply}
           </p>
+          {compliant === false && penalty && (
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-100/60 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                Your penalty
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-amber-800 dark:text-amber-300">
+                {penalty}
+              </p>
+            </div>
+          )}
           {compliant === false && (
             <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
               The Decider has logged this slip.
@@ -273,6 +286,7 @@ export default function WhatsOnPage() {
             onClick={() => {
               setReply("");
               setCompliant(null);
+              setPenalty("");
               setOnFeet("");
               setLocation("");
             }}

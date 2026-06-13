@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/chronicle", label: "Chronicle" },
-  { href: "/roll", label: "Roll" },
+  { href: "/roll?plan=1", label: "Plan" },
   { href: "/catalogue", label: "Catalogue" },
   { href: "/feet", label: "Feet" },
   { href: "/archive", label: "Archive" },
@@ -28,8 +28,9 @@ export function TopNav() {
     <nav className="sticky top-0 z-40 hidden border-b border-line bg-surface/80 backdrop-blur sm:block">
       <div className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 py-2">
         {LINKS.map((l) => {
+          const base = l.href.split("?")[0];
           const active =
-            l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+            base === "/" ? pathname === "/" : pathname.startsWith(base);
           return (
             <Link
               key={l.href}

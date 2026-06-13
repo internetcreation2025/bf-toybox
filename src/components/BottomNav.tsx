@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 // thumb-reachable destinations; everything else lives behind "More".
 const TABS = [
   { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/roll", label: "Roll", icon: RollIcon },
+  { href: "/roll?plan=1", label: "Plan", icon: RollIcon },
   { href: "/feet", label: "Feet", icon: FootIcon },
   { href: "/catalogue", label: "Wardrobe", icon: ShoeIcon },
   { href: "/more", label: "More", icon: MoreIcon },
@@ -27,8 +27,9 @@ export function BottomNav() {
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/90 backdrop-blur sm:hidden">
       <div className="mx-auto flex max-w-md items-stretch justify-around">
         {TABS.map((t) => {
+          const base = t.href.split("?")[0];
           const active =
-            t.href === "/" ? pathname === "/" : pathname.startsWith(t.href);
+            base === "/" ? pathname === "/" : pathname.startsWith(base);
           const Icon = t.icon;
           return (
             <Link

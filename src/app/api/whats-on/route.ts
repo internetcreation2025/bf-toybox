@@ -16,7 +16,11 @@ import type { PlanStep } from "@/lib/decider";
 // to what the plan says he should be wearing right now, and praises him if he's
 // obeying or catches him out if he's in the wrong footwear (wrong shoes, wrong
 // socks, or socks/no-socks when it should be the opposite).
-function parseVerdict(text: string): { compliant: boolean | null; line: string } {
+function parseVerdict(text: string): {
+  compliant: boolean | null;
+  line: string;
+  penalty: string;
+} {
   try {
     const s = text.indexOf("{");
     const e = text.lastIndexOf("}");
@@ -25,12 +29,13 @@ function parseVerdict(text: string): { compliant: boolean | null; line: string }
       return {
         compliant: typeof j.compliant === "boolean" ? j.compliant : null,
         line: typeof j.line === "string" ? j.line.trim() : text.trim(),
+        penalty: typeof j.penalty === "string" ? j.penalty.trim() : "",
       };
     }
   } catch {
     /* fall through */
   }
-  return { compliant: null, line: text.trim() };
+  return { compliant: null, line: text.trim(), penalty: "" };
 }
 export async function POST(request: Request) {
   console.log("[whats-on] start");
@@ -113,6 +118,7 @@ export async function POST(request: Request) {
 
   let reply = "";
   let compliant: boolean | null = null;
+  let penalty = "";
   try {
     const prompt = planText
       ? `You are ${DECIDER_VOICE}
@@ -133,7 +139,9 @@ ${nearby ? `His calendar around now: ${nearby}.` : ""}
 
 Work out which plan block covers RIGHT NOW, and judge whether what he has on matches what you told him to wear for it — the right shoes/footwear, AND the right sock state (socks vs bare, and the correct socks if you named a pair). Be fair: if the plan didn't specify this exact moment, give him the benefit of the doubt and treat him as compliant.
 
-Return ONLY JSON: { "compliant": true or false, "line": "1–3 sentences in your voice, directly to Mike" }. If he's obeying, approve — warm, a little pleased. If he's caught out in the wrong footwear, say so plainly and let him feel the slip — a penalty is coming.`
+If he's caught out, YOU decide the penalty, in character — and VARY it: sometimes lenient (a warning, a knowing let-off), sometimes a forfeit task he must carry out now, sometimes something that lingers or escalates, occasionally pointed and harsh. Make it fit the slip, his normality, and where he is (never anything unsafe or that involves other people).
+
+Return ONLY JSON: { "compliant": true or false, "line": "1–3 sentences in your voice, directly to Mike", "penalty": "if caught out, the consequence you impose, in your voice — else empty string" }. If he's obeying, approve — warm, a little pleased, and leave "penalty" empty.`
       : `You are ${DECIDER_VOICE}
 
 ${base}
@@ -157,6 +165,7 @@ Reply in 1–3 sentences, in your voice — a knowing remark, and you may nudge 
     );
     reply = out.line;
     compliant = planText ? out.compliant : null;
+    penalty = compliant === false ? out.penalty : "";
   } catch (err) {
     console.error("[whats-on] anthropic error", err);
     const e = err as { status?: number; message?: string };
@@ -174,9 +183,10 @@ Reply in 1–3 sentences, in your voice — a knowing remark, and you may nudge 
       user_id: user.id,
       reported: onFeet.trim().slice(0, 300),
       compliant,
+      penalty: penalty || null,
     });
   }
 
-  console.log("[whats-on] done", { compliant });
-  return NextResponse.json({ reply, compliant });
+  console.log("[whats-on] done", { compliant, penalised: !!penalty });
+  return NextResponse.json({ reply, compliant, penalty });
 }
