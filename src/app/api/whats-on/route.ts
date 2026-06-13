@@ -148,12 +148,12 @@ ${base}
 
 ${normalityBlock(settings?.normality)}
 ${settings?.custom_instructions?.trim() ? `\nMike's extra notes to you:\n${settings.custom_instructions.trim()}\n` : ""}
-You've pinged Mike to ask what's on his feet right now — but you haven't set a plan for today yet, so there's nothing to check against.
+You've pinged Mike to ask what's on his feet right now — but you haven't set a plan for today yet, so there's nothing to hold him to. That's no big deal — no penalty — but you're curious and you WANT TO KNOW what's been going on with his feet today: what he's had on, where he's been, how they're doing. Ask him, warmly and a little nosily. You may also gently suggest he plan his day so you can take the reins.
 
 Right now: ${nowLabel || "an unspecified time"}. On his feet: ${onFeet.trim()}. Where he is: ${location?.trim() || "he didn't say"}.
 ${nearby ? `His calendar around now: ${nearby}.` : ""}
 
-Reply in 1–3 sentences, in your voice — a knowing remark, and you may nudge him to roll today's plan so you can hold him to it. Return ONLY JSON: { "compliant": true, "line": "..." }.`;
+Reply in 1–3 sentences, in your voice. Return ONLY JSON: { "compliant": true, "line": "..." }.`;
 
     const msg = await anthropic.messages.create({
       model: CLAUDE_MODEL,
