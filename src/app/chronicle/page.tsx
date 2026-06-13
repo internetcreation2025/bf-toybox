@@ -7,7 +7,7 @@ import { DigestPanel } from "@/components/DigestPanel";
 // recorded event (rolls, sock wears & washes, diary, gallery) into a single
 // dated timeline, topped by the Archivist's latest weekly digest.
 
-type Kind = "verdict" | "wear" | "wash" | "diary";
+type Kind = "verdict" | "wear" | "wash" | "diary" | "bold";
 
 type Event = {
   ts: string; // ISO timestamp it's sorted by
@@ -23,6 +23,7 @@ const KIND_DOT: Record<Kind, string> = {
   wear: "#3b82f6",
   wash: "#22c55e",
   diary: "#9ca3af",
+  bold: "#f43f5e",
 };
 
 export default async function ChroniclePage() {
@@ -108,6 +109,13 @@ export default async function ChroniclePage() {
         dot: KIND_DOT.wash,
         title: `Washed ${name}`,
       });
+    } else if (r.event === "bold") {
+      events.push({
+        ts: r.created_at as string,
+        kind: "bold",
+        dot: KIND_DOT.bold,
+        title: `Bold moment in ${name}`,
+      });
     } else {
       const bits: string[] = [];
       if (r.hours) bits.push(`${r.hours}h`);
@@ -137,16 +145,44 @@ export default async function ChroniclePage() {
   }
 
   events.sort((a, b) => (a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : 0));
-  const trimmed = events.slice(0, 150);
 
-  // Group by calendar day
+  // Streamline as it grows: the last RECENT_DAYS are shown in full; everything
+  // older collapses into one condensed summary line per day, so the feed stays
+  // readable no matter how long the record runs.
+  const RECENT_DAYS = 14;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - RECENT_DAYS);
+  const cutoffDay = cutoff.toISOString().slice(0, 10);
+
+  const recent = events.filter((e) => (e.ts || "").slice(0, 10) >= cutoffDay);
+  const older = events
+    .filter((e) => (e.ts || "").slice(0, 10) < cutoffDay)
+    .slice(0, 400);
+
+  // Full detail for recent days.
   const groups: Array<{ day: string; items: Event[] }> = [];
-  for (const e of trimmed) {
+  for (const e of recent.slice(0, 150)) {
     const day = (e.ts || "").slice(0, 10);
     const last = groups[groups.length - 1];
     if (last && last.day === day) last.items.push(e);
     else groups.push({ day, items: [e] });
   }
+
+  // Condensed: one summary per older day.
+  const olderByDay: Array<{ day: string; summary: string }> = [];
+  for (const e of older) {
+    const day = (e.ts || "").slice(0, 10);
+    const last = olderByDay[olderByDay.length - 1];
+    if (!last || last.day !== day) olderByDay.push({ day, summary: "" });
+  }
+  const olderItems = new Map<string, Event[]>();
+  for (const e of older) {
+    const day = (e.ts || "").slice(0, 10);
+    (olderItems.get(day) ?? olderItems.set(day, []).get(day)!).push(e);
+  }
+  for (const d of olderByDay) d.summary = summariseDay(olderItems.get(d.day) ?? []);
+
+  const hasAnything = recent.length > 0 || older.length > 0;
 
   return (
     <main className="mx-auto max-w-2xl p-8">
@@ -171,10 +207,10 @@ export default async function ChroniclePage() {
         />
       </div>
 
-      {trimmed.length === 0 && (
+      {!hasAnything && (
         <p className="mt-10 text-sm text-neutral-400">
-          Nothing recorded yet. Roll a verdict, log some sock wear, or file a
-          shot, and it&apos;ll all show up here as one story.
+          Nothing recorded yet. Roll a verdict, log some sock wear, or mark a
+          bold moment, and it&apos;ll all show up here as one story.
         </p>
       )}
 
@@ -220,8 +256,53 @@ export default async function ChroniclePage() {
           </section>
         ))}
       </div>
+
+      {olderByDay.length > 0 && (
+        <section className="mt-10 border-t border-neutral-200 pt-8 dark:border-neutral-800">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            Earlier
+          </h2>
+          <p className="mt-1 text-xs text-neutral-400">
+            Older days, rolled up to keep the story readable.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {olderByDay.map((d) => (
+              <li
+                key={d.day}
+                className="flex items-baseline justify-between gap-4 text-sm"
+              >
+                <span className="shrink-0 text-neutral-500">{fmtDay(d.day)}</span>
+                <span className="min-w-0 text-right text-neutral-500">
+                  {d.summary}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
+}
+
+// Condense a day's events into a short summary line for the "Earlier" tail.
+function summariseDay(items: Event[]): string {
+  const counts: Record<Kind, number> = {
+    verdict: 0,
+    wear: 0,
+    wash: 0,
+    diary: 0,
+    bold: 0,
+  };
+  for (const e of items) counts[e.kind] += 1;
+  const plural = (n: number, one: string, many = `${one}s`) =>
+    `${n} ${n === 1 ? one : many}`;
+  const parts: string[] = [];
+  if (counts.verdict) parts.push(plural(counts.verdict, "verdict"));
+  if (counts.bold) parts.push(plural(counts.bold, "bold moment"));
+  if (counts.wear) parts.push(plural(counts.wear, "wear"));
+  if (counts.wash) parts.push(plural(counts.wash, "wash", "washes"));
+  if (counts.diary) parts.push(plural(counts.diary, "note"));
+  return parts.join(" · ") || "—";
 }
 
 function fmtDay(iso: string): string {
