@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 // thumb-reachable destinations; everything else lives behind "More".
 const TABS = [
   { href: "/", label: "Home", icon: HomeIcon },
-  { href: "/roll?plan=1", label: "Plan", icon: RollIcon },
+  { href: "/roll?plan=1", label: "Set", icon: RollIcon },
   { href: "/feet", label: "Feet", icon: FootIcon },
   { href: "/catalogue", label: "Wardrobe", icon: ShoeIcon },
   { href: "/more", label: "More", icon: MoreIcon },

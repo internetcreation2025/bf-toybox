@@ -30,6 +30,7 @@ export default function FeetPage() {
   const [detailBusy, setDetailBusy] = useState(false);
   const [openReadings, setOpenReadings] = useState<Record<string, boolean>>({});
   const [rereading, setRereading] = useState<string | null>(null);
+  const [flashLabel, setFlashLabel] = useState<string | null>(null);
   const [requests, setRequests] = useState<
     Array<{ id: string; label: string; reason: string | null }>
   >([]);
@@ -201,6 +202,10 @@ export default function FeetPage() {
     await load();
   }
 
+  // Stable DOM id for a detail spot, so we can scroll to it after an upload.
+  const spotId = (label: string) =>
+    "spot-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
   // A labelled extreme close-up of a specific spot (e.g. "pad of toe 2, right").
   async function handleAddDetail(label: string, file: File) {
     if (!userId || !label.trim()) return;
@@ -256,6 +261,15 @@ export default function FeetPage() {
 
       setDetailLabel("");
       await load();
+      // Take him straight to the spot he just added and flash it, so he isn't
+      // left hunting for it down the list.
+      setFlashLabel(label);
+      setTimeout(() => {
+        document
+          .getElementById(spotId(label))
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 150);
+      setTimeout(() => setFlashLabel(null), 2200);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -446,7 +460,12 @@ export default function FeetPage() {
           return (
             <div
               key={label}
-              className="mt-4 rounded-xl border border-line p-4 dark:border-line"
+              id={spotId(label)}
+              className={`mt-4 rounded-xl border p-4 transition-all duration-500 ${
+                flashLabel === label
+                  ? "border-accent ring-2 ring-accent"
+                  : "border-line"
+              }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">{label}</p>
