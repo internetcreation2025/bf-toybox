@@ -29,6 +29,10 @@ export default function FeetPage() {
   const [detailLabel, setDetailLabel] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
   const [openReadings, setOpenReadings] = useState<Record<string, boolean>>({});
+  const [requests, setRequests] = useState<
+    Array<{ id: string; label: string; reason: string | null }>
+  >([]);
+  const [asking, setAsking] = useState(false);
   const detailInputRef = useRef<HTMLInputElement>(null);
   const pendingLabelRef = useRef<string | null>(null);
 
@@ -65,7 +69,40 @@ export default function FeetPage() {
       if (p.profile) profMap[p.angle as string] = p.profile as string;
     }
     setProfiles(profMap);
+
+    // Open close-up requests from the Decider (resilient if the table is absent).
+    const { data: reqRows } = await supabase
+      .from("bf_detail_requests")
+      .select("id, label, reason")
+      .eq("status", "open")
+      .order("created_at", { ascending: false });
+    setRequests(
+      (reqRows ?? []) as Array<{ id: string; label: string; reason: string | null }>
+    );
   }, [supabase]);
+
+  async function askDecider() {
+    setAsking(true);
+    setError("");
+    try {
+      const res = await fetch("/api/feet/request-detail", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't ask the Decider");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't ask the Decider");
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  async function dismissRequest(id: string) {
+    await supabase
+      .from("bf_detail_requests")
+      .update({ status: "dismissed" })
+      .eq("id", id);
+    setRequests((rs) => rs.filter((r) => r.id !== id));
+  }
 
   async function buildProfile(angle: string) {
     setProfiling(angle);
@@ -184,6 +221,16 @@ export default function FeetPage() {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || "fingerprint failed");
       }
+      // If the Decider had asked for this spot, mark her request fulfilled.
+      const norm = (s: string) => s.trim().toLowerCase();
+      const fulfilled = requests.filter((r) => norm(r.label) === norm(label));
+      for (const r of fulfilled) {
+        await supabase
+          .from("bf_detail_requests")
+          .update({ status: "done" })
+          .eq("id", r.id);
+      }
+
       setDetailLabel("");
       await load();
     } catch (e) {
@@ -238,6 +285,68 @@ export default function FeetPage() {
           {error}
         </p>
       )}
+
+      {/* What the Decider wants a closer look at */}
+      <section className="mt-8 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            The Decider wants a closer look
+          </h2>
+          <button
+            type="button"
+            onClick={askDecider}
+            disabled={asking}
+            className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          >
+            {asking ? "Asking…" : "Ask what she wants to see"}
+          </button>
+        </div>
+        {requests.length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-400">
+            Nothing outstanding. Ask, and she&apos;ll name a spot she&apos;d like
+            a close-up of.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {requests.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{r.label}</p>
+                  {r.reason && (
+                    <p className="text-xs italic text-neutral-500">
+                      “{r.reason}”
+                    </p>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-3 text-xs">
+                  <button
+                    type="button"
+                    disabled={detailBusy}
+                    onClick={() => {
+                      setDetailLabel(r.label);
+                      pendingLabelRef.current = r.label;
+                      detailInputRef.current?.click();
+                    }}
+                    className="rounded-lg bg-neutral-900 px-3 py-1.5 font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+                  >
+                    Add photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dismissRequest(r.id)}
+                    className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {FOOT_ANGLES.map((a) => (
