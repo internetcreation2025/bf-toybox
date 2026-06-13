@@ -1,22 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Surface why a previous attempt bounced (the callback redirects here with a
+  // reason) — otherwise a rejected sign-in just looks like an endless circle.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const err = p.get("error");
+    const email = p.get("email");
+    if (err === "not_allowed") {
+      setNotice(
+        `${
+          email ? `That account (${email}) ` : "That account "
+        }isn't the owner account. Sign in with the owner's Google account.`
+      );
+    } else if (err === "auth") {
+      setNotice("That sign-in didn't complete. Please try again.");
+    }
+  }, []);
 
   async function handleGoogle() {
     setGoogleBusy(true);
     const supabase = createClient();
     // The /auth/callback route enforces the single-email allowlist, so even a
-    // successful Google sign-in by anyone else is rejected there.
+    // successful Google sign-in by anyone else is rejected there. Force the
+    // account chooser so the right account can always be picked — Google would
+    // otherwise silently reuse whatever account is already active.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: "select_account" },
+      },
     });
     if (error) {
       console.error("google oauth error:", error.message);
+      setNotice(error.message);
       setGoogleBusy(false);
     }
     // On success the browser is redirected to Google — no further UI needed.
@@ -31,6 +55,12 @@ export default function LoginPage() {
             Private. Sign in to continue.
           </p>
         </div>
+
+        {notice && (
+          <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
+            {notice}
+          </p>
+        )}
 
         <button
           type="button"

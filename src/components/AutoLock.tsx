@@ -48,16 +48,34 @@ export function AutoLock() {
       if (expired()) lock();
     };
 
+    // A genuine fresh login (the OAuth callback redirects to /?signedin=1)
+    // ALWAYS starts a clean idle window — never judge it against a leftover
+    // timestamp from a previous session, or it would lock the user straight
+    // back out and the sign-in would loop forever.
+    const params = new URLSearchParams(window.location.search);
+    const freshLogin = params.get("signedin") === "1";
+    if (freshLogin) {
+      touch();
+      params.delete("signedin");
+      const qs = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        window.location.pathname + (qs ? `?${qs}` : "")
+      );
+    }
+
     // First run: an existing session with no stored marker starts its window now.
     if (!localStorage.getItem(KEY)) touch();
-    if (expired()) {
+    if (!freshLogin && expired()) {
       lock();
       return;
     }
 
-    // A genuine fresh sign-in (not a reload) resets the window.
+    // A genuine fresh sign-in (not a reload) resets the window. OAuth logins may
+    // surface as INITIAL_SESSION when the app first loads, so honour both.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") touch();
+      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") touch();
     });
 
     const events = ["click", "keydown", "pointerdown", "touchstart", "scroll"];
