@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { RARITY_META, type Rarity, type PlanStep } from "@/lib/decider";
+import { estimateSmell } from "@/lib/socks";
 import { PlanTimeline } from "@/components/PlanTimeline";
+
+// A pair she spotted in his answer that he might want logged as a wear.
+type WearSuggestion = { sockId: string; name: string; label: string | null; hours: number };
 
 type WearItem = { id: string; name: string; category?: string };
 type Slot = { label: string; activity: string; location: string };
@@ -57,6 +61,10 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const [replyText, setReplyText] = useState("");
   const [replyBusy, setReplyBusy] = useState(false);
   const [replyResponse, setReplyResponse] = useState("");
+  // Pairs she spotted in his answer, offered as one-tap "log this wear" confirms.
+  const [wearSuggestions, setWearSuggestions] = useState<WearSuggestion[]>([]);
+  const [loggedSockIds, setLoggedSockIds] = useState<Set<string>>(new Set());
+  const [loggingSockId, setLoggingSockId] = useState<string | null>(null);
 
   async function sendReply() {
     if (!replyText.trim()) return;
@@ -72,11 +80,46 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
       const json = raw ? JSON.parse(raw) : {};
       if (!res.ok) throw new Error(json.error || "Couldn't send that.");
       setReplyResponse(json.reply || "Noted.");
+      setWearSuggestions(Array.isArray(json.wear) ? json.wear : []);
+      setLoggedSockIds(new Set());
       setReplyText("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send that.");
     } finally {
       setReplyBusy(false);
+    }
+  }
+
+  // Confirm a suggested wear — only now does it write to the sock's log, the
+  // same way the catalogue's "Log wear" does (cumulative hours + audit row).
+  async function confirmWear(s: WearSuggestion) {
+    setLoggingSockId(s.sockId);
+    setError("");
+    try {
+      const { data: row } = await supabase
+        .from("bf_footwear")
+        .select("worn_hours, played_count, dried_count")
+        .eq("id", s.sockId)
+        .maybeSingle();
+      const nHours = (Number(row?.worn_hours) || 0) + s.hours;
+      const played = Number(row?.played_count) || 0;
+      const dried = Number(row?.dried_count) || 0;
+      await supabase
+        .from("bf_footwear")
+        .update({ worn_hours: nHours, last_worn_at: new Date().toISOString() })
+        .eq("id", s.sockId);
+      // Audit trail (resilient — no-ops if bf_sock_log isn't there yet).
+      await supabase.from("bf_sock_log").insert({
+        sock_id: s.sockId,
+        event: "worn",
+        hours: s.hours,
+        smell: estimateSmell(nHours, played, dried),
+      });
+      setLoggedSockIds((prev) => new Set(prev).add(s.sockId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't log that wear.");
+    } finally {
+      setLoggingSockId(null);
     }
   }
 
@@ -297,6 +340,36 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                 <p className="mb-3 rounded-lg bg-surface-2 p-3 text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
                   {replyResponse}
                 </p>
+              )}
+              {wearSuggestions.length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                  {wearSuggestions.map((s) => {
+                    const done = loggedSockIds.has(s.sockId);
+                    const who = s.label ? `${s.label} — ${s.name}` : s.name;
+                    return done ? (
+                      <p
+                        key={s.sockId}
+                        className="flex items-center gap-1.5 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400"
+                      >
+                        <span aria-hidden>✓</span> Logged {s.hours}h on {who}
+                      </p>
+                    ) : (
+                      <button
+                        key={s.sockId}
+                        onClick={() => confirmWear(s)}
+                        disabled={loggingSockId === s.sockId}
+                        className="flex w-full items-center justify-between rounded-lg border border-line px-3 py-2 text-left text-xs transition-colors hover:border-accent disabled:opacity-50"
+                      >
+                        <span>
+                          Log <strong>{s.hours}h</strong> on {who}?
+                        </span>
+                        <span aria-hidden className="text-accent">
+                          {loggingSockId === s.sockId ? "…" : "Log →"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
               {replyOpen ? (
                 <div className="space-y-2">

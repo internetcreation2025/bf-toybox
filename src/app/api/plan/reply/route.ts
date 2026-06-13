@@ -5,8 +5,38 @@ import { DECIDER_VOICE, type PlanStep } from "@/lib/decider";
 
 // Mike answers the Decider's questions about his day (e.g. a retrospective
 // "what did you wear round town?"). She reads the day-plan + his answer and
-// responds in character; the exchange is recorded so there's a real account of
-// what actually went on his feet.
+// responds in character. If he mentions wearing a specific catalogued pair for
+// a stretch of time, she also flags it as a wear to log — but she does NOT log
+// it here: she hands back a suggestion the app shows as a one-tap confirm, so
+// nothing is recorded against a sock until Mike says yes.
+
+type WearSuggestion = { sockId: string; name: string; label: string | null; hours: number };
+
+type Parsed = { reply: string; wear: Array<{ sock_id?: string; hours?: number }> };
+
+function parse(text: string): Parsed {
+  const fallback: Parsed = { reply: text.trim() || "Noted.", wear: [] };
+  try {
+    const s = text.indexOf("{");
+    const e = text.lastIndexOf("}");
+    if (s === -1 || e === -1) return fallback;
+    const j = JSON.parse(text.slice(s, e + 1)) as Record<string, unknown>;
+    const reply =
+      typeof j.reply === "string" && j.reply.trim() ? j.reply.trim() : fallback.reply;
+    const wear = Array.isArray(j.wear)
+      ? (j.wear as Array<Record<string, unknown>>)
+          .map((w) => ({
+            sock_id: typeof w.sock_id === "string" ? w.sock_id : undefined,
+            hours: Number(w.hours),
+          }))
+          .filter((w) => w.sock_id && w.hours > 0)
+      : [];
+    return { reply, wear };
+  } catch {
+    return fallback;
+  }
+}
+
 export async function POST(request: Request) {
   console.log("[plan/reply] start");
 
@@ -47,11 +77,28 @@ export async function POST(request: Request) {
     .join("\n")
     .slice(0, 2500);
 
-  let reply = "";
+  // His sock catalogue, so she can match what he says to an exact pair and we
+  // can offer to log against it. Read defensively (label may be absent).
+  const { data: sockRows } = await supabase
+    .from("bf_footwear")
+    .select("id, name, label, category")
+    .eq("category", "socks")
+    .order("created_at", { ascending: false });
+  const socks = (sockRows ?? []) as Array<{
+    id: string;
+    name: string;
+    label: string | null;
+  }>;
+  const sockList = socks
+    .map((s) => `- id ${s.id} — label ${s.label ? `"${s.label}"` : "(none)"}, ${s.name}`)
+    .join("\n")
+    .slice(0, 2500);
+
+  let parsed: Parsed = { reply: "Noted.", wear: [] };
   try {
     const msg = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 220,
+      max_tokens: 320,
       messages: [
         {
           role: "user",
@@ -63,14 +110,22 @@ ${planText || ch?.instruction || "(no plan on file)"}
 Mike has just answered you:
 "${answer.trim()}"
 
-Respond in 1–3 sentences, in your voice, directly to Mike — acknowledge what he tells you he did with his feet/socks/footwear, react to it (pleased, teasing, or noting it for later), and only add a small follow-up if it genuinely fits. No preamble, no markdown.`,
+His sock catalogue (match only against these exact pairs):
+${sockList || "(no socks catalogued)"}
+
+Do two things:
+1. Reply in 1–3 sentences, in your voice, directly to Mike — acknowledge what he tells you he did with his feet/socks/footwear, react to it (pleased, teasing, or noting it for later), and only add a small follow-up if it genuinely fits.
+2. If he clearly says he WORE a specific catalogued pair for some length of time, list it so it can be logged. Only include a pair when you're confident he names it (by its label or an unmistakable description) AND gives or implies a duration. Estimate hours if he's vague ("most of the afternoon" ≈ 4). Never invent a pair he didn't mention.
+
+Return ONLY JSON, no preamble, no markdown:
+{ "reply": "your message to Mike", "wear": [ { "sock_id": "the exact id from the list", "hours": 2 } ] }
+If he didn't clearly wear a catalogued pair, use "wear": [].`,
         },
       ],
     });
-    reply = msg.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
+    parsed = parse(
+      msg.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim()
+    );
   } catch (err) {
     console.error("[plan/reply] anthropic error", err);
     const e = err as { status?: number; message?: string };
@@ -81,6 +136,22 @@ Respond in 1–3 sentences, in your voice, directly to Mike — acknowledge what
     return NextResponse.json({ error: m }, { status: 502 });
   }
 
+  // Resolve the suggested wear ids back to real catalogue pairs (drops any id
+  // she invented) and attach display names for the confirm button.
+  const byId = new Map(socks.map((s) => [s.id, s]));
+  const suggestions: WearSuggestion[] = parsed.wear
+    .map((w) => {
+      const s = w.sock_id ? byId.get(w.sock_id) : undefined;
+      if (!s) return null;
+      return {
+        sockId: s.id,
+        name: s.name,
+        label: s.label,
+        hours: Math.round((w.hours ?? 0) * 2) / 2,
+      };
+    })
+    .filter((x): x is WearSuggestion => !!x && x.hours > 0);
+
   // Keep a record of what he reported (resilient — bf_memory has no kind
   // constraint). Stored as a note so it's part of the day's account.
   await supabase.from("bf_memory").insert({
@@ -90,6 +161,6 @@ Respond in 1–3 sentences, in your voice, directly to Mike — acknowledge what
     status: "done",
   });
 
-  console.log("[plan/reply] done");
-  return NextResponse.json({ reply });
+  console.log("[plan/reply] done", { suggestions: suggestions.length });
+  return NextResponse.json({ reply: parsed.reply, wear: suggestions });
 }
