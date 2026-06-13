@@ -2,7 +2,6 @@ import Link from "next/link";
 
 // The "More" tab on phones — everything that isn't a primary bottom-tab.
 const ITEMS = [
-  { href: "/whats-on", label: "What's on your feet?", hint: "A quick check-in with the Decider" },
   { href: "/chronicle", label: "The Foot Chronicle", hint: "Your running record, day by day" },
   { href: "/stats", label: "Stats & achievements", hint: "Streaks, rarity, milestones" },
   { href: "/reports", label: "Reports", hint: "Habits drawn from what you've logged" },

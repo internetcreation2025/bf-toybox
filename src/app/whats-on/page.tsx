@@ -22,6 +22,7 @@ export default function WhatsOnPage() {
   const [location, setLocation] = useState("");
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState("");
+  const [compliant, setCompliant] = useState<boolean | null>(null);
   const [error, setError] = useState("");
 
   // "Show me your feet" proof flow.
@@ -55,6 +56,7 @@ export default function WhatsOnPage() {
     setBusy(true);
     setError("");
     setReply("");
+    setCompliant(null);
     try {
       const res = await fetch("/api/whats-on", {
         method: "POST",
@@ -68,6 +70,7 @@ export default function WhatsOnPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "She didn't answer — try again.");
       setReply(json.reply);
+      setCompliant(json.compliant ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -185,8 +188,9 @@ export default function WhatsOnPage() {
         What&apos;s on your feet?
       </h1>
       <p className="mt-1 text-sm text-muted">
-        The Decider&apos;s asking. Tap what you&apos;ve got on (or type it), say
-        where you are if you like, and she&apos;ll weigh in.
+        The Decider&apos;s checking. She set your footwear for today — tell her
+        the truth about what&apos;s actually on, and she&apos;ll see if
+        you&apos;re obeying.
       </p>
 
       <input
@@ -231,19 +235,50 @@ export default function WhatsOnPage() {
       {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
 
       {reply && (
-        <div className="mt-6 rounded-xl border border-line p-5 dark:border-line">
-          <p className="whitespace-pre-line text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
+        <div
+          className={`mt-6 rounded-xl border p-5 ${
+            compliant === true
+              ? "border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950/30"
+              : compliant === false
+              ? "border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30"
+              : "border-line"
+          }`}
+        >
+          {compliant !== null && (
+            <p
+              className={`text-xs font-semibold uppercase tracking-wide ${
+                compliant
+                  ? "text-green-700 dark:text-green-400"
+                  : "text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              {compliant ? "Obeying ✓" : "Caught out"}
+            </p>
+          )}
+          <p
+            className={`whitespace-pre-line text-sm italic leading-relaxed ${
+              compliant !== null
+                ? "mt-1.5 text-foreground"
+                : "text-neutral-700 dark:text-neutral-200"
+            }`}
+          >
             {reply}
           </p>
+          {compliant === false && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
+              The Decider has logged this slip.
+            </p>
+          )}
           <button
             onClick={() => {
               setReply("");
+              setCompliant(null);
               setOnFeet("");
               setLocation("");
             }}
             className="mt-4 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
-            Ask again
+            Close
           </button>
         </div>
       )}
@@ -264,37 +299,13 @@ export default function WhatsOnPage() {
             >
               Done
             </button>
-            <button
-              onClick={surpriseMe}
-              disabled={taskBusy}
-              className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
-            >
-              {taskBusy ? "Thinking…" : "Give me another"}
-            </button>
           </div>
         </div>
       )}
 
-      {/* Show me your feet — proof flow */}
-      <section className="mt-8 border-t border-line pt-6 dark:border-line">
-        {!revealReq ? (
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={askToSeeFeet}
-              disabled={revealBusy}
-              className="text-left text-sm font-medium text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
-            >
-              {revealBusy ? "She's deciding…" : "Dare me — have her ask to see my feet"}
-            </button>
-            <button
-              onClick={surpriseMe}
-              disabled={taskBusy}
-              className="text-left text-sm font-medium text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
-            >
-              {taskBusy ? "Thinking…" : "Surprise me — let her set anything"}
-            </button>
-          </div>
-        ) : (
+      {/* Show me your feet — proof flow (only when SHE asks, via a push) */}
+      {revealReq && (
+        <section className="mt-8 border-t border-line pt-6 dark:border-line">
           <div className="rounded-xl border border-line p-5 dark:border-line">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               She wants to see
@@ -366,8 +377,8 @@ export default function WhatsOnPage() {
               </>
             )}
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </main>
   );
 }

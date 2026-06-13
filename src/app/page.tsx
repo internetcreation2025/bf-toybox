@@ -153,19 +153,6 @@ export default async function Home() {
         <span aria-hidden className="text-lg">→</span>
       </Link>
 
-      <Link
-        href="/whats-on"
-        className="mt-3 flex items-center justify-between rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-accent"
-      >
-        <span>
-          <span className="font-medium">What&apos;s on your feet?</span>
-          <span className="mt-0.5 block text-xs text-muted">
-            A quick check-in with the Decider, wherever you are.
-          </span>
-        </span>
-        <span aria-hidden className="text-muted">→</span>
-      </Link>
-
       <p className="mt-10 text-center text-xs text-muted">
         Plan your day, complete it, keep the streak alive.
       </p>
