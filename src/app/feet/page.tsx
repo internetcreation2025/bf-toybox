@@ -27,6 +27,7 @@ export default function FeetPage() {
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [detailLabel, setDetailLabel] = useState("");
   const [detailBusy, setDetailBusy] = useState(false);
+  const [openReadings, setOpenReadings] = useState<Record<string, boolean>>({});
   const detailInputRef = useRef<HTMLInputElement>(null);
   const pendingLabelRef = useRef<string | null>(null);
 
@@ -304,25 +305,49 @@ export default function FeetPage() {
         {/* Existing spots, each a dated timeline */}
         {detailGroups.map((rows) => {
           const label = rows[0].label ?? "—";
+          // Latest reading in this spot (newest photo with AI text).
+          const latestRead = [...rows]
+            .reverse()
+            .find((r) => r.ai_fingerprint)?.ai_fingerprint;
+          const reading = openReadings[label];
           return (
             <div
               key={label}
               className="mt-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">{label}</p>
-                <button
-                  type="button"
-                  disabled={detailBusy}
-                  onClick={() => {
-                    pendingLabelRef.current = label;
-                    detailInputRef.current?.click();
-                  }}
-                  className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
-                >
-                  + Add to this spot
-                </button>
+                <div className="flex shrink-0 items-center gap-3">
+                  {latestRead && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenReadings((o) => ({ ...o, [label]: !o[label] }))
+                      }
+                      className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                    >
+                      {reading ? "Hide reading" : "What it sees"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={detailBusy}
+                    onClick={() => {
+                      pendingLabelRef.current = label;
+                      detailInputRef.current?.click();
+                    }}
+                    className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+                  >
+                    + Add to this spot
+                  </button>
+                </div>
               </div>
+
+              {reading && latestRead && (
+                <p className="mt-2 whitespace-pre-line rounded-lg bg-neutral-50 p-3 text-xs italic leading-relaxed text-neutral-600 dark:bg-neutral-950 dark:text-neutral-300">
+                  {latestRead}
+                </p>
+              )}
               <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {rows.map((r) => (
                   <div key={r.id} className="group relative">

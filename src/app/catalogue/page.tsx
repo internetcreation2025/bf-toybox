@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { resizeImage } from "@/lib/image";
 import type { Dossier } from "@/lib/decider";
@@ -32,6 +32,7 @@ type Item = {
   retired: boolean | null;
   bio: string | null;
   bio_updated_at: string | null;
+  verified_at: string | null;
 };
 
 // Maps the 3-way sockless preference UI value to a nullable boolean column.
@@ -497,8 +498,23 @@ function ItemCard({
   // Per-sock audit history (lazy-loaded).
   const [auditOpen, setAuditOpen] = useState(false);
   const [audit, setAudit] = useState<
-    Array<{ event: string; hours: number | null; smell: number | null; created_at: string }>
+    Array<{
+      event: string;
+      hours: number | null;
+      smell: number | null;
+      note: string | null;
+      created_at: string;
+    }>
   >([]);
+
+  // Bold-moment logging — a deliberate boundary-push wearing this pair.
+  const [boldOpen, setBoldOpen] = useState(false);
+  const [boldNote, setBoldNote] = useState("");
+
+  // Identity verification from a proof photo of the label.
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState("");
+  const verifyInputRef = useRef<HTMLInputElement>(null);
 
   // Socks carry hours + wash state; shoes only carry a "worn bare" tally.
   const wearBits: string[] = [];
@@ -568,14 +584,80 @@ function ItemCard({
   async function toggleAudit() {
     const next = !auditOpen;
     setAuditOpen(next);
-    if (next) {
-      const { data } = await supabase
-        .from("bf_sock_log")
-        .select("event, hours, smell, created_at")
-        .eq("sock_id", it.id)
-        .order("created_at", { ascending: false })
-        .limit(12);
-      setAudit((data ?? []) as typeof audit);
+    if (next) await loadAudit();
+  }
+
+  async function loadAudit() {
+    // Try with `note` (bold moments); fall back if that column isn't there yet.
+    const withNote = await supabase
+      .from("bf_sock_log")
+      .select("event, hours, smell, note, created_at")
+      .eq("sock_id", it.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!withNote.error) {
+      setAudit((withNote.data ?? []) as typeof audit);
+      return;
+    }
+    const { data } = await supabase
+      .from("bf_sock_log")
+      .select("event, hours, smell, created_at")
+      .eq("sock_id", it.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setAudit(
+      ((data ?? []) as Array<Omit<(typeof audit)[number], "note">>).map((a) => ({
+        ...a,
+        note: null,
+      }))
+    );
+  }
+
+  // Record a deliberate boundary-push wearing this pair (e.g. barefoot in public).
+  async function logBold() {
+    if (!boldNote.trim()) return;
+    setBusy(true);
+    await supabase.from("bf_sock_log").insert({
+      sock_id: it.id,
+      event: "bold",
+      smell: currentSmell,
+      note: boldNote.trim(),
+    });
+    setBoldNote("");
+    setBoldOpen(false);
+    setBusy(false);
+    if (auditOpen) await loadAudit();
+  }
+
+  // Verify this pair's identity from a proof photo of its written label.
+  async function verifyIdentity(file: File) {
+    setVerifyBusy(true);
+    setVerifyMsg("");
+    try {
+      const blob = await resizeImage(file);
+      const reader = new FileReader();
+      const dataUrl: string = await new Promise((res, rej) => {
+        reader.onload = () => res(reader.result as string);
+        reader.onerror = rej;
+        reader.readAsDataURL(blob);
+      });
+      const res = await fetch("/api/footwear/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: it.id, image: dataUrl }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't verify");
+      setVerifyMsg(
+        json.verified
+          ? `Verified — read "${json.read ?? it.label}" on the label.`
+          : `Not a match — read "${json.read ?? "nothing"}", expected "${it.label}".`
+      );
+      await onChanged();
+    } catch (e) {
+      setVerifyMsg(e instanceof Error ? e.message : "Couldn't verify");
+    } finally {
+      setVerifyBusy(false);
     }
   }
 
@@ -646,6 +728,17 @@ function ItemCard({
               {stageMeta.label}
             </span>
           )}
+          {isSock && it.verified_at && (
+            <span
+              title={`Identity confirmed from the label on ${it.verified_at.slice(
+                0,
+                10
+              )}`}
+              className="ml-1.5 mt-1.5 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400"
+            >
+              ✓ Verified
+            </span>
+          )}
         </div>
         <button
           onClick={onDelete}
@@ -685,6 +778,32 @@ function ItemCard({
               {bioOpen ? "Hide story" : "Biography"}
             </button>
             <button
+              onClick={() => setBoldOpen((v) => !v)}
+              className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              {boldOpen ? "Close" : "Bold moment"}
+            </button>
+            {it.label && (
+              <button
+                onClick={() => verifyInputRef.current?.click()}
+                disabled={verifyBusy}
+                className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+              >
+                {verifyBusy ? "Verifying…" : "Verify"}
+              </button>
+            )}
+            <input
+              ref={verifyInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) verifyIdentity(f);
+                e.target.value = "";
+              }}
+            />
+            <button
               onClick={toggleRetired}
               disabled={busy}
               className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
@@ -717,25 +836,58 @@ function ItemCard({
         )}
       </div>
 
+      {/* Verify result */}
+      {isSock && verifyMsg && (
+        <p className="mt-3 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-950 dark:text-neutral-300">
+          {verifyMsg}
+        </p>
+      )}
+
+      {/* Log a bold moment */}
+      {isSock && boldOpen && (
+        <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+          <label className="block text-xs text-neutral-500">
+            What did you dare in this pair? (e.g. “barefoot through the gym
+            car park”, “took them off on the train”)
+            <input
+              value={boldNote}
+              onChange={(e) => setBoldNote(e.target.value)}
+              placeholder="A boundary you pushed wearing these…"
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          </label>
+          <button
+            onClick={logBold}
+            disabled={busy || !boldNote.trim()}
+            className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+          >
+            {busy ? "Saving…" : "Log it"}
+          </button>
+        </div>
+      )}
+
       {/* Sock audit history */}
       {isSock && auditOpen && (
         <div className="mt-3 rounded-lg border border-neutral-200 p-3 text-xs dark:border-neutral-800">
           {audit.length === 0 ? (
             <p className="text-neutral-400">
-              No history yet. Log wear or a wash to start the audit trail.
+              No history yet. Log wear, a wash, or a bold moment to start the
+              audit trail.
             </p>
           ) : (
             <ul className="space-y-1">
               {audit.map((a, i) => (
                 <li key={i} className="flex justify-between gap-3 text-neutral-500">
-                  <span>
+                  <span className="min-w-0">
                     {a.created_at.slice(0, 10)} ·{" "}
                     {a.event === "washed"
                       ? "Washed"
+                      : a.event === "bold"
+                      ? `Bold — ${a.note ?? "a boundary pushed"}`
                       : `Worn${a.hours ? ` ${a.hours}h` : ""}`}
                   </span>
                   {a.event !== "washed" && a.smell != null && (
-                    <span className="tabular-nums">~{a.smell}/10</span>
+                    <span className="shrink-0 tabular-nums">~{a.smell}/10</span>
                   )}
                 </li>
               ))}
