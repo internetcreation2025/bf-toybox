@@ -63,9 +63,6 @@ async function handle(request: Request) {
 
   const envRows = envs ?? [];
   const diaryRows = diaries ?? [];
-  if (envRows.length === 0 && diaryRows.length === 0) {
-    return NextResponse.json({ sent: 0, due: 0 });
-  }
 
   // Work out, per user, what's waiting — so each device gets ONE content-free
   // nudge per run even if several things came due at once.
@@ -126,13 +123,85 @@ async function handle(request: Request) {
       .in("id", diaryRows.map((d) => d.id));
   }
 
+  // (c) Occasional random "what's on your feet?" nudge — content-free and
+  // throttled. Fires at most about once every few hours, only in UK waking
+  // hours, and only if the owner hasn't switched nudges off.
+  const NUDGE_MIN_GAP_MS = 5 * 60 * 60 * 1000; // ≥5h between nudges
+  const NUDGE_PER_MIN_CHANCE = 0.004; // ~1–2 a day across the waking window
+  const utcHour = new Date(nowIso).getUTCHours();
+  const wakingUk = utcHour >= 7 && utcHour < 21; // ≈ UK 07:00–22:00
+  let nudged = 0;
+  if (wakingUk) {
+    const { data: subUsers } = await admin
+      .from("bf_push_subs")
+      .select("user_id");
+    const uids = Array.from(
+      new Set((subUsers ?? []).map((s) => s.user_id as string))
+    );
+    for (const uid of uids) {
+      // Settings gate + throttle (resilient if the columns aren't there yet).
+      const { data: st } = await admin
+        .from("bf_settings")
+        .select("notifications_enabled, nudges_enabled, last_nudge_at")
+        .eq("user_id", uid)
+        .maybeSingle();
+      if (st?.notifications_enabled === false) continue;
+      if (st?.nudges_enabled === false) continue;
+      const last = st?.last_nudge_at ? new Date(st.last_nudge_at).getTime() : 0;
+      if (Date.now() - last < NUDGE_MIN_GAP_MS) continue;
+      if (Math.random() > NUDGE_PER_MIN_CHANCE) continue;
+
+      const payload = {
+        title: "Sole Decider",
+        body: "What's on your feet right now?",
+        url: "/whats-on",
+      };
+      const { data: subs } = await admin
+        .from("bf_push_subs")
+        .select("endpoint, p256dh, auth")
+        .eq("user_id", uid);
+      let delivered = false;
+      for (const sub of (subs ?? []) as StoredSub[]) {
+        try {
+          await sendPush(sub, payload);
+          nudged += 1;
+          delivered = true;
+        } catch (err) {
+          const status = (err as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) {
+            await admin
+              .from("bf_push_subs")
+              .delete()
+              .eq("endpoint", sub.endpoint);
+          } else {
+            console.error("[cron/dispatch] nudge push error", status, err);
+          }
+        }
+      }
+      // Record the nudge so the throttle holds (no-ops pre-migration).
+      if (delivered) {
+        await admin
+          .from("bf_settings")
+          .update({ last_nudge_at: nowIso })
+          .eq("user_id", uid);
+      }
+    }
+  }
+
   const due = envRows.length + diaryRows.length;
   console.log("[cron/dispatch] done", {
     envelopes: envRows.length,
     diary: diaryRows.length,
     sent,
+    nudged,
   });
-  return NextResponse.json({ due, envelopes: envRows.length, diary: diaryRows.length, sent });
+  return NextResponse.json({
+    due,
+    envelopes: envRows.length,
+    diary: diaryRows.length,
+    sent,
+    nudged,
+  });
 }
 
 export async function GET(request: Request) {

@@ -226,11 +226,13 @@ function GoogleCalendarSection() {
 }
 
 function NotificationsSection() {
+  const supabase = createClient();
   const configured = !!VAPID_PUBLIC_KEY;
   const [supported, setSupported] = useState<boolean | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [nudges, setNudges] = useState(true);
 
   useEffect(() => {
     if (!pushSupported()) {
@@ -241,7 +243,31 @@ function NotificationsSection() {
     currentSubscription()
       .then((s) => setEnabled(!!s))
       .catch(() => {});
-  }, []);
+    // Random-nudge preference (resilient if the column isn't there yet).
+    supabase
+      .from("bf_settings")
+      .select("nudges_enabled")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && data.nudges_enabled === false) setNudges(false);
+      });
+  }, [supabase]);
+
+  async function toggleNudges() {
+    const next = !nudges;
+    setNudges(next);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from("bf_settings")
+        .upsert(
+          { user_id: user.id, nudges_enabled: next },
+          { onConflict: "user_id" }
+        );
+    }
+  }
 
   async function toggle() {
     setBusy(true);
@@ -327,6 +353,25 @@ function NotificationsSection() {
       )}
 
       {msg && <p className="mt-3 text-sm text-neutral-500">{msg}</p>}
+
+      {configured && supported !== false && (
+        <label className="mt-5 flex items-start gap-2.5 text-sm text-neutral-600 dark:text-neutral-300">
+          <input
+            type="checkbox"
+            checked={nudges}
+            onChange={toggleNudges}
+            className="mt-0.5 h-4 w-4 accent-neutral-900 dark:accent-white"
+          />
+          <span>
+            Let the Decider surprise me with the occasional “what&apos;s on your
+            feet?” nudge.
+            <span className="mt-0.5 block text-xs text-neutral-400">
+              A few times a day at most, only in waking hours. Turn off for a
+              quieter life.
+            </span>
+          </span>
+        </label>
+      )}
     </section>
   );
 }

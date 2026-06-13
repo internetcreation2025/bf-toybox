@@ -165,6 +165,21 @@ export default async function Home() {
         </span>
       </Link>
 
+      <Link
+        href="/whats-on"
+        className="mt-3 flex items-center justify-between rounded-xl border border-neutral-200 p-5 transition-colors hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
+      >
+        <span>
+          <span className="font-medium">What&apos;s on your feet?</span>
+          <span className="mt-0.5 block text-xs text-neutral-500">
+            A quick check-in with the Decider, wherever you are.
+          </span>
+        </span>
+        <span aria-hidden className="text-neutral-400">
+          →
+        </span>
+      </Link>
+
       <nav className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-neutral-500">
         <Link href="/feet" className="hover:text-neutral-900 dark:hover:text-neutral-100">
           My feet
