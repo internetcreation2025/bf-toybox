@@ -20,6 +20,8 @@ export default function FeetPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [rowsByAngle, setRowsByAngle] = useState<Record<string, RefRow[]>>({});
   const [urls, setUrls] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [profiling, setProfiling] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -51,7 +53,36 @@ export default function FeetPage() {
     }
     setRowsByAngle(grouped);
     setUrls(signed);
+
+    // One consolidated profile per angle (resilient if the table isn't there).
+    const { data: profRows } = await supabase
+      .from("bf_foot_angle_profiles")
+      .select("angle, profile");
+    const profMap: Record<string, string> = {};
+    for (const p of profRows ?? []) {
+      if (p.profile) profMap[p.angle as string] = p.profile as string;
+    }
+    setProfiles(profMap);
   }, [supabase]);
+
+  async function buildProfile(angle: string) {
+    setProfiling(angle);
+    setError("");
+    try {
+      const res = await fetch("/api/feet/angle-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ angle }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't build the profile");
+      setProfiles((p) => ({ ...p, [angle]: json.profile }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't build the profile");
+    } finally {
+      setProfiling(null);
+    }
+  }
 
   useEffect(() => {
     load();
@@ -214,6 +245,9 @@ export default function FeetPage() {
             rows={rowsByAngle[a.key] ?? []}
             urls={urls}
             busy={busy === a.key}
+            profile={profiles[a.key]}
+            profiling={profiling === a.key}
+            onBuildProfile={() => buildProfile(a.key)}
             onView={setLightbox}
             onDelete={handleDelete}
             onPick={(file) => handleUpload(a.key, file)}
@@ -350,6 +384,9 @@ function AngleCard({
   rows,
   urls,
   busy,
+  profile,
+  profiling,
+  onBuildProfile,
   onView,
   onDelete,
   onPick,
@@ -358,11 +395,15 @@ function AngleCard({
   rows: RefRow[];
   urls: Record<string, string>;
   busy: boolean;
+  profile?: string;
+  profiling: boolean;
+  onBuildProfile: () => void;
   onView: (url: string) => void;
   onDelete: (row: RefRow) => void;
   onPick: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const learned = rows.some((r) => r.ai_fingerprint);
 
   return (
@@ -425,6 +466,38 @@ function AngleCard({
       />
 
       {busy && <p className="mt-2 text-xs text-neutral-500">Analysing…</p>}
+
+      {/* One consolidated profile for this angle, built from all its photos */}
+      <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+        <div className="flex items-center justify-between gap-2">
+          {profile ? (
+            <button
+              onClick={() => setShowProfile((v) => !v)}
+              className="text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            >
+              {showProfile ? "Hide profile" : "View profile"}
+            </button>
+          ) : (
+            <span className="text-xs text-neutral-400">No profile yet</span>
+          )}
+          <button
+            onClick={onBuildProfile}
+            disabled={profiling || rows.length === 0}
+            className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+          >
+            {profiling
+              ? "Building…"
+              : profile
+              ? "Refresh profile"
+              : "Build profile"}
+          </button>
+        </div>
+        {profile && showProfile && (
+          <p className="mt-2 text-xs italic leading-relaxed text-neutral-600 dark:text-neutral-300">
+            {profile}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
