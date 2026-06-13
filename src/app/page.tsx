@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ActiveSession, type ActiveChallenge } from "@/components/ActiveSession";
+import { TodayCalendar } from "@/components/TodayCalendar";
 import { GameFollowup, type GameMemory } from "@/components/GameFollowup";
 import { PrepMemory, type PrepItem } from "@/components/PrepMemory";
 
@@ -83,6 +84,8 @@ export default async function Home() {
         <Stat label="Best streak" value={streak?.longest_streak ?? 0} />
         <Stat label="Freeze tokens" value={streak?.freeze_tokens ?? 0} />
       </div>
+
+      <TodayCalendar />
 
       {gameFollowups.length > 0 && (
         <section className="mt-8">

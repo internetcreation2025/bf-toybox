@@ -7,6 +7,7 @@ import {
   rarityBrief,
   composeInstructions,
   footwearLine,
+  normalityBlock,
   PERSONAS,
   DEFAULT_PERSONA,
   isPersonaKey,
@@ -345,6 +346,8 @@ export async function POST(request: Request) {
   const prompt = `${instructions}
 
 Persona — write ALL player-facing text in this voice: ${PERSONAS[persona].voice}
+
+${normalityBlock(settings?.normality as string | null | undefined)}
 
 The owner's next 4 hours:
 ${schedule

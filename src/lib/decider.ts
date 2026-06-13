@@ -94,6 +94,15 @@ export function isPersonaKey(v: unknown): v is PersonaKey {
   return typeof v === "string" && v in PERSONAS;
 }
 
+// ─── Mike's "normality" — the baseline the Decider reasons from ───────────────
+export const DEFAULT_NORMALITY = `Around the house I wear socks or go barefoot, and I always sleep barefoot. For padel or racquetball I wear the right shoes with my catalogued white sports socks. In summer I love being out, usually in shorts, so I want footwear that suits shorts and the weather. Walking the dog I wear trainers, or my walking shoes with the orange trim. Mostly I wear socks with trainers, but occasionally flip-flops. With family or friends — and anywhere people know me — I dress appropriately for the weather and what I'm wearing, and I don't push any boundaries. It's only in places where nobody knows me that I like to push boundaries and conventions.`;
+
+// One labelled block injected into the Decider's prompt.
+export function normalityBlock(normality: string | null | undefined): string {
+  const n = (normality && normality.trim()) || DEFAULT_NORMALITY;
+  return `MIKE'S NORMAL — his everyday footwear habits and comfort zone. Treat this as the default; dress him to it unless there's a good reason to deviate, and push past it only as a deliberate, well-judged choice (and remember he only wants boundaries pushed where nobody knows him — never around family, friends or people who know him):\n${n}`;
+}
+
 // ─── Editable agent instructions ─────────────────────────────────────────────
 export const DEFAULT_BASE_INSTRUCTIONS = `You are "The Decider", game master of a private, single-player footwear game for the owner — his name is Mike, one adult man, playing only with and on himself. Address him by name where it feels natural.
 
