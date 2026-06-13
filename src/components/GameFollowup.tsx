@@ -39,14 +39,14 @@ export function GameFollowup({ memory }: { memory: GameMemory }) {
   return (
     <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/30">
       <p className="text-sm font-medium">{memory.title}</p>
-      <p className="mt-1 text-xs text-neutral-500">
+      <p className="mt-1 text-xs text-muted">
         Be honest — a loss, or rating your play low, makes the next dares
         harsher.
       </p>
 
       {/* Optional 1–5 self-rating */}
       <div className="mt-3">
-        <p className="text-xs text-neutral-500">Rate your play (optional)</p>
+        <p className="text-xs text-muted">Rate your play (optional)</p>
         <div className="mt-1.5 flex gap-1.5">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -55,7 +55,7 @@ export function GameFollowup({ memory }: { memory: GameMemory }) {
               className={`h-8 w-8 rounded-lg border text-sm font-medium transition-colors ${
                 rating === n
                   ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                  : "border-neutral-300 text-neutral-500 dark:border-neutral-700"
+                  : "border-line text-muted dark:border-line"
               }`}
             >
               {n}
@@ -82,7 +82,7 @@ export function GameFollowup({ memory }: { memory: GameMemory }) {
         <button
           onClick={dismiss}
           disabled={busy}
-          className="rounded-lg px-4 py-2 text-sm text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+          className="rounded-lg px-4 py-2 text-sm text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
         >
           Didn&apos;t happen
         </button>

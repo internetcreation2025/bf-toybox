@@ -63,14 +63,14 @@ export default function SettingsPage() {
     <main className="mx-auto max-w-2xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
         The Decider
       </h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Tune how the game master behaves. Your changes apply to every future roll.
       </p>
 
@@ -80,12 +80,12 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold">Your normality</h2>
           <button
             onClick={() => setNormality(DEFAULT_NORMALITY)}
-            className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             Reset to default
           </button>
         </div>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted">
           Your everyday footwear habits and comfort zone. The Decider treats this
           as your baseline and only deviates on purpose — and only pushes
           boundaries where nobody knows you.
@@ -94,7 +94,7 @@ export default function SettingsPage() {
           value={normality}
           onChange={(e) => setNormality(e.target.value)}
           rows={6}
-          className="mt-3 w-full rounded-lg border border-neutral-300 p-3 text-sm leading-relaxed outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          className="mt-3 w-full rounded-lg border border-line p-3 text-sm leading-relaxed outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
         />
       </section>
 
@@ -104,26 +104,26 @@ export default function SettingsPage() {
           <h2 className="text-sm font-semibold">Base instructions</h2>
           <button
             onClick={() => setBase(DEFAULT_BASE_INSTRUCTIONS)}
-            className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             Reset to default
           </button>
         </div>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted">
           The core brief the Decider always follows. Edit freely.
         </p>
         <textarea
           value={base}
           onChange={(e) => setBase(e.target.value)}
           rows={12}
-          className="mt-3 w-full rounded-lg border border-neutral-300 p-3 font-mono text-xs leading-relaxed outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          className="mt-3 w-full rounded-lg border border-line p-3 font-mono text-xs leading-relaxed outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
         />
       </section>
 
       {/* Custom extra instructions */}
       <section className="mt-8">
         <h2 className="text-sm font-semibold">Your extra instructions</h2>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted">
           Added on top of the base, with priority. Use this to add rules or tell
           it to omit things — e.g. &ldquo;never suggest boots&rdquo; or
           &ldquo;skip the date-on-foot requirement&rdquo;.
@@ -133,7 +133,7 @@ export default function SettingsPage() {
           onChange={(e) => setCustom(e.target.value)}
           rows={5}
           placeholder="Add anything extra here…"
-          className="mt-3 w-full rounded-lg border border-neutral-300 p-3 text-sm leading-relaxed outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          className="mt-3 w-full rounded-lg border border-line p-3 text-sm leading-relaxed outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
         />
       </section>
 
@@ -189,9 +189,9 @@ function GoogleCalendarSection() {
   }
 
   return (
-    <section className="mt-12 border-t border-neutral-200 pt-8 dark:border-neutral-800">
+    <section className="mt-12 border-t border-line pt-8 dark:border-line">
       <h2 className="text-sm font-semibold">Google Calendar</h2>
-      <p className="mt-1 text-xs text-neutral-400">
+      <p className="mt-1 text-xs text-muted">
         Connect once and the Decider reads your day on its own — no importing.
         Read-only, and you can disconnect any time.
       </p>
@@ -205,7 +205,7 @@ function GoogleCalendarSection() {
             <button
               onClick={disconnect}
               disabled={busy}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm disabled:opacity-50 dark:border-neutral-700"
+              className="rounded-lg border border-line px-4 py-2 text-sm disabled:opacity-50 dark:border-line"
             >
               Disconnect
             </button>
@@ -220,7 +220,7 @@ function GoogleCalendarSection() {
         )}
       </div>
 
-      {note && <p className="mt-3 text-sm text-neutral-500">{note}</p>}
+      {note && <p className="mt-3 text-sm text-muted">{note}</p>}
     </section>
   );
 }
@@ -305,21 +305,21 @@ function NotificationsSection() {
   }
 
   return (
-    <section className="mt-12 border-t border-neutral-200 pt-8 dark:border-neutral-800">
+    <section className="mt-12 border-t border-line pt-8 dark:border-line">
       <h2 className="text-sm font-semibold">Notifications</h2>
-      <p className="mt-1 text-xs text-neutral-400">
+      <p className="mt-1 text-xs text-muted">
         Get a quiet, content-free nudge when a sealed mystery envelope is ready
         to open. The alert never shows the verdict — it just tells you to open
         the app.
       </p>
 
       {supported === false ? (
-        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm text-neutral-500 dark:bg-neutral-900">
+        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm text-muted dark:bg-neutral-900">
           This browser can&apos;t do push notifications. On iPhone, add the app
           to your Home Screen and open it from there first.
         </p>
       ) : !configured ? (
-        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm text-neutral-500 dark:bg-neutral-900">
+        <p className="mt-3 rounded-lg bg-neutral-50 p-3 text-sm text-muted dark:bg-neutral-900">
           Notifications aren&apos;t switched on by the server yet (the push keys
           still need to be added).
         </p>
@@ -330,7 +330,7 @@ function NotificationsSection() {
             disabled={busy}
             className={`rounded-lg px-5 py-2.5 text-sm font-medium disabled:opacity-50 ${
               enabled
-                ? "border border-neutral-300 dark:border-neutral-700"
+                ? "border border-line"
                 : "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
             }`}
           >
@@ -344,7 +344,7 @@ function NotificationsSection() {
             <button
               onClick={sendTest}
               disabled={busy}
-              className="rounded-lg border border-neutral-300 px-5 py-2.5 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+              className="rounded-lg border border-line px-5 py-2.5 text-sm font-medium disabled:opacity-50 dark:border-line"
             >
               Send test
             </button>
@@ -352,7 +352,7 @@ function NotificationsSection() {
         </div>
       )}
 
-      {msg && <p className="mt-3 text-sm text-neutral-500">{msg}</p>}
+      {msg && <p className="mt-3 text-sm text-muted">{msg}</p>}
 
       {configured && supported !== false && (
         <label className="mt-5 flex items-start gap-2.5 text-sm text-neutral-600 dark:text-neutral-300">
@@ -365,7 +365,7 @@ function NotificationsSection() {
           <span>
             Let the Decider surprise me with the occasional “what&apos;s on your
             feet?” nudge.
-            <span className="mt-0.5 block text-xs text-neutral-400">
+            <span className="mt-0.5 block text-xs text-muted">
               A few times a day at most, only in waking hours. Turn off for a
               quieter life.
             </span>

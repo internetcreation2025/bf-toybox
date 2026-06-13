@@ -34,9 +34,9 @@ export function DigestPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 dark:border-neutral-800 dark:bg-neutral-900/40">
+    <section className="rounded-2xl border border-line bg-neutral-50 p-5 dark:border-line dark:bg-neutral-900/40">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           The Archivist&apos;s digest
         </h2>
         <button
@@ -49,7 +49,7 @@ export function DigestPanel({
       </div>
 
       {weekEnding && (
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted">
           Week ending {fmt(weekEnding)}
         </p>
       )}
@@ -59,7 +59,7 @@ export function DigestPanel({
           {liveText}
         </p>
       ) : (
-        <p className="mt-3 text-sm text-neutral-400">
+        <p className="mt-3 text-sm text-muted">
           No digest yet. Generate one and the Archivist will recap your week —
           what your feet did, the sock of the week, any milestones.
         </p>

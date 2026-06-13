@@ -177,14 +177,14 @@ export default function WhatsOnPage() {
     <main className="mx-auto max-w-lg p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-4 text-2xl font-semibold tracking-tight">
         What&apos;s on your feet?
       </h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         The Decider&apos;s asking. Tap what you&apos;ve got on (or type it), say
         where you are if you like, and she&apos;ll weigh in.
       </p>
@@ -193,7 +193,7 @@ export default function WhatsOnPage() {
         value={onFeet}
         onChange={(e) => setOnFeet(e.target.value)}
         placeholder="e.g. barefoot, white sports socks, black slides…"
-        className="mt-6 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+        className="mt-6 w-full rounded-xl border border-line px-4 py-3 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
       />
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -205,7 +205,7 @@ export default function WhatsOnPage() {
             className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
               onFeet === q
                 ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                : "border-neutral-300 hover:border-neutral-400 dark:border-neutral-700"
+                : "border-line hover:border-accent dark:border-line"
             }`}
           >
             {q}
@@ -217,7 +217,7 @@ export default function WhatsOnPage() {
         value={location}
         onChange={(e) => setLocation(e.target.value)}
         placeholder="Where are you? (optional — home, the gym, Edinburgh…)"
-        className="mt-4 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+        className="mt-4 w-full rounded-xl border border-line px-4 py-3 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
       />
 
       <button
@@ -231,7 +231,7 @@ export default function WhatsOnPage() {
       {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
 
       {reply && (
-        <div className="mt-6 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+        <div className="mt-6 rounded-xl border border-line p-5 dark:border-line">
           <p className="whitespace-pre-line text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
             {reply}
           </p>
@@ -241,7 +241,7 @@ export default function WhatsOnPage() {
               setOnFeet("");
               setLocation("");
             }}
-            className="mt-4 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="mt-4 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             Ask again
           </button>
@@ -250,8 +250,8 @@ export default function WhatsOnPage() {
 
       {/* Surprise task — she invents something */}
       {task && (
-        <div className="mt-6 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+        <div className="mt-6 rounded-xl border border-line p-5 dark:border-line">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
             She&apos;s decided
           </p>
           <p className="mt-2 text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
@@ -267,7 +267,7 @@ export default function WhatsOnPage() {
             <button
               onClick={surpriseMe}
               disabled={taskBusy}
-              className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+              className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
             >
               {taskBusy ? "Thinking…" : "Give me another"}
             </button>
@@ -276,27 +276,27 @@ export default function WhatsOnPage() {
       )}
 
       {/* Show me your feet — proof flow */}
-      <section className="mt-8 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+      <section className="mt-8 border-t border-line pt-6 dark:border-line">
         {!revealReq ? (
           <div className="flex flex-col gap-3">
             <button
               onClick={askToSeeFeet}
               disabled={revealBusy}
-              className="text-left text-sm font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+              className="text-left text-sm font-medium text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
             >
               {revealBusy ? "She's deciding…" : "Dare me — have her ask to see my feet"}
             </button>
             <button
               onClick={surpriseMe}
               disabled={taskBusy}
-              className="text-left text-sm font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+              className="text-left text-sm font-medium text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
             >
               {taskBusy ? "Thinking…" : "Surprise me — let her set anything"}
             </button>
           </div>
         ) : (
-          <div className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          <div className="rounded-xl border border-line p-5 dark:border-line">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               She wants to see
             </p>
             <p className="mt-2 text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
@@ -322,7 +322,7 @@ export default function WhatsOnPage() {
                     setRevealPassed(null);
                     setDifficult(false);
                   }}
-                  className="mt-3 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                  className="mt-3 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
                 >
                   Done
                 </button>
@@ -359,7 +359,7 @@ export default function WhatsOnPage() {
                 />
                 <button
                   onClick={() => setRevealReq(null)}
-                  className="mt-3 block text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                  className="mt-3 block text-xs text-muted hover:text-neutral-700 dark:hover:text-neutral-300"
                 >
                   Not now
                 </button>

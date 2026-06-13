@@ -19,7 +19,7 @@ export function PlanTimeline({
     <div className="space-y-4">
       {before && (
         <div className="rounded-xl bg-neutral-50 p-4 dark:bg-neutral-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
             Before you start
           </p>
           <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-200">
@@ -28,7 +28,7 @@ export function PlanTimeline({
         </div>
       )}
 
-      <ol className="space-y-3 border-l-2 border-neutral-200 pl-5 dark:border-neutral-800">
+      <ol className="space-y-3 border-l-2 border-line pl-5 dark:border-line">
         {plan.map((s, i) => (
           <li key={i} className="relative">
             <span
@@ -41,7 +41,7 @@ export function PlanTimeline({
                 <span className="text-sm font-semibold tabular-nums">{s.when}</span>
               )}
               {s.activity && (
-                <span className="text-sm text-neutral-500">{s.activity}</span>
+                <span className="text-sm text-muted">{s.activity}</span>
               )}
               {s.headline && (
                 <span
@@ -56,7 +56,7 @@ export function PlanTimeline({
               {s.do}
             </p>
             {s.after && (
-              <p className="mt-1 text-sm text-neutral-500">
+              <p className="mt-1 text-sm text-muted">
                 <span className="font-medium">After:</span> {s.after}
               </p>
             )}
@@ -66,7 +66,7 @@ export function PlanTimeline({
 
       {carryover && (
         <div className="rounded-xl bg-neutral-50 p-4 dark:bg-neutral-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
             Through the day
           </p>
           <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-200">

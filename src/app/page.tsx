@@ -61,18 +61,16 @@ export default async function Home() {
   }>).map((d) => ({ id: d.id, title: d.title, due: d.game_on }));
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col p-8">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col p-6 sm:p-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sole Decider</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Signed in as {user?.email}
-          </p>
+          <h1 className="text-3xl font-semibold">Sole Decider</h1>
+          <p className="mt-1 text-sm text-muted">{user?.email}</p>
         </div>
         <form action="/auth/signout" method="post">
           <button
             type="submit"
-            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            className="rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
           >
             Sign out
           </button>
@@ -89,7 +87,7 @@ export default async function Home() {
 
       {gameFollowups.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             How did it go?
           </h2>
           <div className="mt-3 space-y-3">
@@ -102,7 +100,7 @@ export default async function Home() {
 
       {activeSessions.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             In play
           </h2>
           <div className="mt-3 space-y-3">
@@ -115,10 +113,10 @@ export default async function Home() {
 
       {diaryItems.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             Your diary
           </h2>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-muted">
             Dated tasks the Decider scheduled. Highlighted ones are due.
           </p>
           <div className="mt-3">
@@ -129,10 +127,10 @@ export default async function Home() {
 
       {prepItems.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             The Decider remembers
           </h2>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-muted">
             Prep tasks it set for the future. Mark done when you&apos;ve handled
             them.
           </p>
@@ -144,47 +142,43 @@ export default async function Home() {
 
       <Link
         href="/roll"
-        className="mt-8 flex items-center justify-between rounded-xl bg-neutral-900 p-5 text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-neutral-900"
+        className="mt-8 flex items-center justify-between rounded-2xl bg-accent p-5 text-on-accent shadow-sm transition-transform hover:-translate-y-0.5"
       >
-        <span className="font-medium">Roll my next 4 hours</span>
-        <span aria-hidden>→</span>
-      </Link>
-
-      <Link
-        href="/chronicle"
-        className="mt-3 flex items-center justify-between rounded-xl border border-neutral-200 p-5 transition-colors hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
-      >
-        <span>
-          <span className="font-medium">Open the Foot Chronicle</span>
-          <span className="mt-0.5 block text-xs text-neutral-500">
-            The running record of your feet — and the Archivist&apos;s weekly digest.
-          </span>
-        </span>
-        <span aria-hidden className="text-neutral-400">
-          →
-        </span>
+        <span className="text-base font-semibold">Roll my next 4 hours</span>
+        <span aria-hidden className="text-lg">→</span>
       </Link>
 
       <Link
         href="/whats-on"
-        className="mt-3 flex items-center justify-between rounded-xl border border-neutral-200 p-5 transition-colors hover:border-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600"
+        className="mt-3 flex items-center justify-between rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-accent"
       >
         <span>
           <span className="font-medium">What&apos;s on your feet?</span>
-          <span className="mt-0.5 block text-xs text-neutral-500">
+          <span className="mt-0.5 block text-xs text-muted">
             A quick check-in with the Decider, wherever you are.
           </span>
         </span>
-        <span aria-hidden className="text-neutral-400">
-          →
-        </span>
+        <span aria-hidden className="text-muted">→</span>
       </Link>
 
-      <p className="mt-10 text-center text-xs text-neutral-400">
+      <Link
+        href="/chronicle"
+        className="mt-3 flex items-center justify-between rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-accent"
+      >
+        <span>
+          <span className="font-medium">Open the Foot Chronicle</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            The running record of your feet — and the weekly digest.
+          </span>
+        </span>
+        <span aria-hidden className="text-muted">→</span>
+      </Link>
+
+      <p className="mt-10 text-center text-xs text-muted">
         Roll for a verdict, complete it, keep the streak alive.
       </p>
-      <p className="mt-2 text-center text-xs text-neutral-400">
-        <Link href="/vision-test" className="hover:text-neutral-700 dark:hover:text-neutral-300">
+      <p className="mt-2 text-center text-xs text-muted">
+        <Link href="/vision-test" className="hover:text-foreground">
           Vision test
         </Link>
       </p>
@@ -194,9 +188,11 @@ export default async function Home() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 text-center dark:border-neutral-800">
-      <div className="text-2xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-neutral-500">{label}</div>
+    <div className="rounded-2xl border border-line bg-surface p-4 text-center">
+      <div className="text-2xl font-semibold tabular-nums text-accent">
+        {value}
+      </div>
+      <div className="mt-1 text-xs text-muted">{label}</div>
     </div>
   );
 }

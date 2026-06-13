@@ -95,7 +95,7 @@ export default async function StatsPage() {
     <main className="mx-auto max-w-2xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
@@ -116,7 +116,7 @@ export default async function StatsPage() {
 
       {/* Rarity breakdown */}
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Verdicts by rarity
         </h2>
         <div className="mt-4 space-y-3">
@@ -136,7 +136,7 @@ export default async function StatsPage() {
                     }}
                   />
                 </div>
-                <span className="w-6 shrink-0 text-right text-sm tabular-nums text-neutral-500">
+                <span className="w-6 shrink-0 text-right text-sm tabular-nums text-muted">
                   {count}
                 </span>
               </div>
@@ -148,10 +148,10 @@ export default async function StatsPage() {
       {/* Achievements */}
       <section className="mt-10">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             Achievements
           </h2>
-          <span className="text-sm text-neutral-400">
+          <span className="text-sm text-muted">
             {unlocked.length}/{ACHIEVEMENTS.length}
           </span>
         </div>
@@ -164,16 +164,16 @@ export default async function StatsPage() {
                 className={`rounded-xl border p-4 transition-colors ${
                   got
                     ? "border-neutral-900 dark:border-white"
-                    : "border-neutral-200 opacity-50 dark:border-neutral-800"
+                    : "border-line opacity-50 dark:border-line"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{a.label}</span>
-                  <span className="text-xs uppercase tracking-wide text-neutral-400">
+                  <span className="text-xs uppercase tracking-wide text-muted">
                     {got ? "Unlocked" : "Locked"}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-neutral-500">{a.description}</p>
+                <p className="mt-1 text-sm text-muted">{a.description}</p>
               </div>
             );
           })}
@@ -185,9 +185,9 @@ export default async function StatsPage() {
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 text-center dark:border-neutral-800">
+    <div className="rounded-xl border border-line p-4 text-center dark:border-line">
       <div className="text-2xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-neutral-500">{label}</div>
+      <div className="mt-1 text-xs text-muted">{label}</div>
     </div>
   );
 }

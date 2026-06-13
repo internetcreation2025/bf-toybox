@@ -231,13 +231,13 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         >
           {sealed ? "Sealed" : meta.label}
         </span>
-        <span className="text-xs uppercase tracking-wide text-neutral-400">
+        <span className="text-xs uppercase tracking-wide text-muted">
           In play
         </span>
       </div>
 
       {sealed ? (
-        <p className="mt-3 text-sm text-neutral-500">
+        <p className="mt-3 text-sm text-muted">
           A sealed envelope is waiting. Open it when its timer runs out.
         </p>
       ) : (
@@ -265,26 +265,26 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
       {/* Plans changed? Edit the schedule and the Decider re-plans the affected
           blocks only, keeping the rest. */}
       {!sealed && editingSchedule && (
-        <div className="mt-4 space-y-2 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-          <p className="text-xs font-medium text-neutral-500">
+        <div className="mt-4 space-y-2 rounded-xl border border-line p-3 dark:border-line">
+          <p className="text-xs font-medium text-muted">
             Adjust today&apos;s blocks — the Decider will only re-do what changed.
           </p>
           {schedule.map((s, i) => (
             <div
               key={i}
-              className="space-y-2 rounded-lg border border-neutral-200 p-2.5 dark:border-neutral-800"
+              className="space-y-2 rounded-lg border border-line p-2.5 dark:border-line"
             >
               <div className="flex items-center gap-2">
                 <input
                   value={s.label}
                   onChange={(e) => updateBlock(i, { label: e.target.value })}
                   placeholder="Time (e.g. 2–3:30pm)"
-                  className="w-full rounded-lg border border-neutral-300 px-2.5 py-1.5 text-sm font-medium outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                  className="w-full rounded-lg border border-line px-2.5 py-1.5 text-sm font-medium outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
                 />
                 <button
                   onClick={() => removeBlock(i)}
                   aria-label="Remove block"
-                  className="shrink-0 rounded-lg border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-500 hover:text-red-600 dark:border-neutral-700"
+                  className="shrink-0 rounded-lg border border-line px-2.5 py-1.5 text-xs text-muted hover:text-red-600 dark:border-line"
                 >
                   ✕
                 </button>
@@ -294,20 +294,20 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                   value={s.activity}
                   onChange={(e) => updateBlock(i, { activity: e.target.value })}
                   placeholder="Activity"
-                  className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                  className="rounded-lg border border-line px-2.5 py-1.5 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
                 />
                 <input
                   value={s.location}
                   onChange={(e) => updateBlock(i, { location: e.target.value })}
                   placeholder="Location (optional)"
-                  className="rounded-lg border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                  className="rounded-lg border border-line px-2.5 py-1.5 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
                 />
               </div>
             </div>
           ))}
           <button
             onClick={addBlock}
-            className="w-full rounded-lg border border-dashed border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:hover:text-neutral-100"
+            className="w-full rounded-lg border border-dashed border-line px-3 py-1.5 text-xs text-muted hover:text-neutral-900 dark:border-line dark:hover:text-neutral-100"
           >
             + Add a block
           </button>
@@ -324,7 +324,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                 setEditingSchedule(false);
                 loadPlan();
               }}
-              className="rounded-lg px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               Cancel
             </button>
@@ -362,8 +362,8 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
 
       {/* Log sock wear straight from the task — no catalogue trip. */}
       {panelOpen && (
-        <div className="mt-3 space-y-2 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-          <p className="text-xs font-medium text-neutral-500">
+        <div className="mt-3 space-y-2 rounded-xl border border-line p-3 dark:border-line">
+          <p className="text-xs font-medium text-muted">
             Which socks did you wear?
           </p>
           <div className="flex flex-wrap gap-2">
@@ -383,7 +383,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                   className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                     on
                       ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                      : "border-neutral-300 dark:border-neutral-700"
+                      : "border-line"
                   }`}
                 >
                   {s.name}
@@ -391,7 +391,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
               );
             })}
           </div>
-          <label className="block text-xs text-neutral-500">
+          <label className="block text-xs text-muted">
             Roughly how many hours?
             <input
               type="number"
@@ -400,7 +400,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
               value={hours}
               onChange={(e) => setHours(e.target.value)}
               placeholder="e.g. 4"
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           </label>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-600 dark:text-neutral-300">
@@ -448,7 +448,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
                 })
               }
               disabled={busy}
-              className="rounded-lg px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               Done, skip logging
             </button>
@@ -461,7 +461,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         {!sealed && (
           <button
             onClick={() => setShowAppeal((v) => !v)}
-            className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="font-medium text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             {showAppeal ? "Close" : "Talk to the Decider"}
           </button>
@@ -469,7 +469,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
         {!sealed && (
           <button
             onClick={() => setEditingSchedule((v) => !v)}
-            className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             {editingSchedule ? "Close" : "Plans changed?"}
           </button>
@@ -478,12 +478,12 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
           <button
             onClick={() => resolve("cancelled")}
             disabled={busy}
-            className="text-neutral-400 hover:text-red-600 disabled:opacity-50"
+            className="text-muted hover:text-red-600 disabled:opacity-50"
           >
             Cancel
           </button>
         ) : (
-          <span className="text-neutral-400">
+          <span className="text-muted">
             Needs proof — stays until you submit.
           </span>
         )}
@@ -497,7 +497,7 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
             onChange={(e) => setPlea(e.target.value)}
             rows={2}
             placeholder="Reason with the Decider… (it may soften this, or make it worse)"
-            className="w-full rounded-lg border border-neutral-300 p-2.5 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="w-full rounded-lg border border-line p-2.5 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
           <button
             onClick={sendAppeal}

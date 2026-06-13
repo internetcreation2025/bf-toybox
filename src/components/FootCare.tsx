@@ -89,10 +89,10 @@ export function FootCare() {
   if (!tableReady) {
     return (
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Foot care
         </h2>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-muted">
           Run the foot-care SQL to switch this on — then the Decider can set
           care tasks (trim, file, etc.) with before/after photos.
         </p>
@@ -103,19 +103,19 @@ export function FootCare() {
   return (
     <section className="mt-10">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Foot care
         </h2>
         <button
           type="button"
           onClick={askDeciderToCheck}
           disabled={checking}
-          className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-line dark:hover:bg-neutral-900"
         >
           {checking ? "She's looking…" : "Ask the Decider to check my feet"}
         </button>
       </div>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Care is the Decider&apos;s call. She looks over your feet and, only if
         something genuinely needs doing — a nail, hard skin, dryness — she sets
         the task. Add a before and an after photo, and she&apos;ll confirm it was
@@ -131,7 +131,7 @@ export function FootCare() {
 
       <div className="mt-4 space-y-3">
         {rows.length === 0 && (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-muted">
             No care tasks. The Decider hasn&apos;t asked for anything — tap above
             to have her check.
           </p>
@@ -223,7 +223,7 @@ function CareCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="rounded-xl border border-line p-4 dark:border-line">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-medium">
@@ -234,11 +234,11 @@ function CareCard({
               </span>
             )}
           </p>
-          <p className="text-sm text-neutral-500">{row.action}</p>
+          <p className="text-sm text-muted">{row.action}</p>
         </div>
         <button
           onClick={remove}
-          className="shrink-0 text-xs text-neutral-400 hover:text-red-500"
+          className="shrink-0 text-xs text-muted hover:text-red-500"
         >
           Remove
         </button>
@@ -250,14 +250,14 @@ function CareCard({
           const ref = which === "before" ? beforeRef : afterRef;
           return (
             <div key={which}>
-              <p className="mb-1 text-xs font-medium capitalize text-neutral-500">
+              <p className="mb-1 text-xs font-medium capitalize text-muted">
                 {which}
               </p>
               <button
                 type="button"
                 onClick={() => ref.current?.click()}
                 disabled={busy === which}
-                className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-neutral-300 bg-neutral-50 text-xs text-neutral-400 hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950"
+                className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-neutral-50 text-xs text-muted hover:border-accent disabled:opacity-60 dark:border-line dark:bg-neutral-950"
               >
                 {busy === which ? (
                   "Uploading…"
@@ -303,14 +303,14 @@ function CareCard({
               ? "Add both a before and an after photo first"
               : "Ask the Decider to compare before and after"
           }
-          className="font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+          className="font-medium text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
         >
           {busy === "review" ? "Checking…" : "Decider, check it"}
         </button>
         <button
           onClick={toggleDone}
           disabled={busy === "done"}
-          className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+          className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
         >
           {row.done ? "Reopen" : "Mark done"}
         </button>

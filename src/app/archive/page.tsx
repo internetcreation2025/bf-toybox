@@ -77,19 +77,19 @@ export default function ArchivePage() {
     <main className="mx-auto max-w-2xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Archive</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Every dare you&apos;ve been set, and how it went.
       </p>
 
-      {loading && <p className="mt-8 text-sm text-neutral-500">Loading…</p>}
+      {loading && <p className="mt-8 text-sm text-muted">Loading…</p>}
 
       {!loading && rows.length === 0 && (
-        <p className="mt-8 text-sm text-neutral-400">
+        <p className="mt-8 text-sm text-muted">
           Nothing yet. Head to{" "}
           <Link href="/roll" className="underline">
             Roll
@@ -101,7 +101,7 @@ export default function ArchivePage() {
       {/* Awaiting proof */}
       {pending.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             Awaiting proof
           </h2>
           <div className="mt-3 space-y-3">
@@ -127,7 +127,7 @@ export default function ArchivePage() {
       {/* Completed */}
       {completed.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             Completed
           </h2>
           <div className="mt-3 space-y-3">
@@ -143,7 +143,7 @@ export default function ArchivePage() {
                       className="h-16 w-16 shrink-0 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400 dark:bg-neutral-900">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-muted dark:bg-neutral-900">
                       —
                     </div>
                   )}
@@ -159,7 +159,7 @@ export default function ArchivePage() {
                     <p className="mt-1.5 truncate text-sm text-neutral-600 dark:text-neutral-300">
                       {r.instruction}
                     </p>
-                    <p className="mt-1 text-xs text-neutral-400">
+                    <p className="mt-1 text-xs text-muted">
                       {r.verification_json
                         ? `Match ${r.verification_json.match_confidence}% · `
                         : ""}
@@ -169,13 +169,13 @@ export default function ArchivePage() {
                 </>
               );
               const cls =
-                "flex gap-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800";
+                "flex gap-4 rounded-xl border border-line p-4 dark:border-line";
               // Only proof dares have a detail page (the forensic card).
               return badge.link ? (
                 <Link
                   key={r.id}
                   href={`/proof/${r.id}`}
-                  className={`${cls} transition-colors hover:border-neutral-400`}
+                  className={`${cls} transition-colors hover:border-accent`}
                 >
                   {inner}
                 </Link>
@@ -186,7 +186,7 @@ export default function ArchivePage() {
                     <button
                       onClick={() => remove(r.id)}
                       disabled={deleting === r.id}
-                      className="shrink-0 self-start rounded-lg border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 hover:border-red-300 hover:text-red-600 disabled:opacity-50 dark:border-neutral-700"
+                      className="shrink-0 self-start rounded-lg border border-line px-3 py-1.5 text-xs text-muted hover:border-red-300 hover:text-red-600 disabled:opacity-50 dark:border-line"
                     >
                       {deleting === r.id ? "…" : "Delete"}
                     </button>
@@ -222,7 +222,7 @@ function statusBadge(status: string): {
     case "cancelled":
       return {
         label: "Cancelled",
-        classes: "bg-neutral-100 text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400",
+        classes: "bg-neutral-100 text-muted dark:bg-neutral-900 dark:text-muted",
         link: false,
       };
     default:

@@ -188,21 +188,21 @@ export default function CataloguePage() {
     <main className="mx-auto max-w-3xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
         Footwear catalogue
       </h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Everything you own — the Decider picks from this and tracks how worn each
         pair is. Add socks here too, with photos.
       </p>
 
       <form
         onSubmit={handleAdd}
-        className="mt-6 space-y-3 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800"
+        className="mt-6 space-y-3 rounded-xl border border-line p-5 dark:border-line"
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input
@@ -210,12 +210,12 @@ export default function CataloguePage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name (e.g. Black Adidas slides)"
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as FootwearCategory)}
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm capitalize outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="rounded-lg border border-line px-3 py-2 text-sm capitalize outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           >
             {FOOTWEAR_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -227,34 +227,34 @@ export default function CataloguePage() {
             value={colour}
             onChange={(e) => setColour(e.target.value)}
             placeholder="Colour (optional)"
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
           {category === "socks" && (
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Label (e.g. S1a — the tag on the sock)"
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           )}
         </div>
-        <label className="block text-xs text-neutral-500">
+        <label className="block text-xs text-muted">
           Description &amp; story — the Decider reads this in detail
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             placeholder="Anything she should know — age, how they smell after a walk, what you'll do with them (smell, kiss, lick…), memories. The more, the better she knows them."
-            className="mt-1 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="mt-1 w-full resize-y rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
         </label>
         {category !== "socks" && (
-          <label className="block text-xs text-neutral-500">
+          <label className="block text-xs text-muted">
             Happy to wear these without socks?
             <select
               value={sockless}
               onChange={(e) => setSockless(e.target.value as SocklessPref)}
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950 sm:w-72"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950 sm:w-72"
             >
               <option value="unset">No preference</option>
               <option value="yes">Fine without socks</option>
@@ -267,7 +267,7 @@ export default function CataloguePage() {
             type="file"
             accept="image/*"
             onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
-            className="text-sm text-neutral-500 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm dark:file:bg-neutral-800"
+            className="text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm dark:file:bg-neutral-800"
           />
           <button
             type="submit"
@@ -298,11 +298,11 @@ export default function CataloguePage() {
                 className={`rounded-full border px-3 py-1.5 text-sm capitalize transition-colors ${
                   on
                     ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                    : "border-neutral-300 dark:border-neutral-700"
+                    : "border-line"
                 }`}
               >
                 {c === "all" ? "All" : prettyCategory(c)}{" "}
-                <span className={on ? "opacity-70" : "text-neutral-400"}>
+                <span className={on ? "opacity-70" : "text-muted"}>
                   {count}
                 </span>
               </button>
@@ -313,7 +313,7 @@ export default function CataloguePage() {
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {items.length === 0 && (
-          <p className="text-sm text-neutral-400">No footwear yet.</p>
+          <p className="text-sm text-muted">No footwear yet.</p>
         )}
         {items
           .filter((it) => filter === "all" || it.category === filter)
@@ -690,7 +690,7 @@ function ItemCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="rounded-xl border border-line p-4 dark:border-line">
       <div className="flex gap-4">
         {url ? (
           <button
@@ -718,12 +718,12 @@ function ItemCard({
             )}
             <span className="truncate font-medium">{it.name}</span>
           </p>
-          <p className="text-xs capitalize text-neutral-500">
+          <p className="text-xs capitalize text-muted">
             {prettyCategory(it.category)}
             {it.colour ? ` · ${it.colour}` : ""}
           </p>
           {it.dossier?.summary && (
-            <p className="mt-1 text-xs italic text-neutral-500">
+            <p className="mt-1 text-xs italic text-muted">
               {it.dossier.summary}
             </p>
           )}
@@ -732,11 +732,11 @@ function ItemCard({
               {it.description}
             </p>
           )}
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-muted">
             {wearBits.length ? wearBits.join(" · ") : "Fresh / clean"}
           </p>
           {isSock && (
-            <p className="mt-0.5 text-xs text-neutral-400">
+            <p className="mt-0.5 text-xs text-muted">
               smell ~{currentSmell}/10 · washed {washCount}×
             </p>
           )}
@@ -762,7 +762,7 @@ function ItemCard({
         </div>
         <button
           onClick={onDelete}
-          className="self-start text-xs text-neutral-400 hover:text-red-500"
+          className="self-start text-xs text-muted hover:text-red-500"
         >
           Remove
         </button>
@@ -774,32 +774,32 @@ function ItemCard({
           <>
             <button
               onClick={() => setOpen((v) => !v)}
-              className="font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="font-medium text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               {open ? "Close" : "Log wear"}
             </button>
             <button
               onClick={markWashed}
               disabled={busy}
-              className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+              className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
             >
               Mark washed
             </button>
             <button
               onClick={toggleAudit}
-              className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               {auditOpen ? "Hide audit" : "Audit"}
             </button>
             <button
               onClick={() => setBioOpen((v) => !v)}
-              className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               {bioOpen ? "Hide story" : "Biography"}
             </button>
             <button
               onClick={() => setBoldOpen((v) => !v)}
-              className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               {boldOpen ? "Close" : "Bold moment"}
             </button>
@@ -807,7 +807,7 @@ function ItemCard({
               <button
                 onClick={() => verifyInputRef.current?.click()}
                 disabled={verifyBusy}
-                className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+                className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
               >
                 {verifyBusy ? "Verifying…" : "Verify"}
               </button>
@@ -826,7 +826,7 @@ function ItemCard({
             <button
               onClick={toggleRetired}
               disabled={busy}
-              className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+              className="text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
             >
               {it.retired ? "Bring back" : "Retire"}
             </button>
@@ -835,21 +835,21 @@ function ItemCard({
           <button
             onClick={markBare}
             disabled={busy}
-            className="font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            className="font-medium text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
           >
             Worn bare once
           </button>
         )}
         <button
           onClick={startEdit}
-          className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+          className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
         >
           Edit
         </button>
         {it.photo_path && (
           <button
             onClick={onReprofile}
-            className="text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             Re-profile
           </button>
@@ -865,15 +865,15 @@ function ItemCard({
 
       {/* Log a bold moment */}
       {isSock && boldOpen && (
-        <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-          <label className="block text-xs text-neutral-500">
+        <div className="mt-3 space-y-2 rounded-lg border border-line p-3 dark:border-line">
+          <label className="block text-xs text-muted">
             What did you dare in this pair? (e.g. “barefoot through the gym
             car park”, “took them off on the train”)
             <input
               value={boldNote}
               onChange={(e) => setBoldNote(e.target.value)}
               placeholder="A boundary you pushed wearing these…"
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           </label>
           <button
@@ -888,16 +888,16 @@ function ItemCard({
 
       {/* Sock audit history */}
       {isSock && auditOpen && (
-        <div className="mt-3 rounded-lg border border-neutral-200 p-3 text-xs dark:border-neutral-800">
+        <div className="mt-3 rounded-lg border border-line p-3 text-xs dark:border-line">
           {audit.length === 0 ? (
-            <p className="text-neutral-400">
+            <p className="text-muted">
               No history yet. Log wear, a wash, or a bold moment to start the
               audit trail.
             </p>
           ) : (
             <ul className="space-y-1">
               {audit.map((a, i) => (
-                <li key={i} className="flex justify-between gap-3 text-neutral-500">
+                <li key={i} className="flex justify-between gap-3 text-muted">
                   <span className="min-w-0">
                     {a.created_at.slice(0, 10)} ·{" "}
                     {a.event === "washed"
@@ -918,13 +918,13 @@ function ItemCard({
 
       {/* Sock biography — the Archivist's evolving story for this pair */}
       {isSock && bioOpen && (
-        <div className="mt-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+        <div className="mt-3 rounded-lg border border-line p-3 dark:border-line">
           {bio ? (
             <p className="whitespace-pre-line text-sm italic leading-relaxed text-neutral-600 dark:text-neutral-300">
               {bio}
             </p>
           ) : (
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted">
               No story written yet. The Archivist will compose one from this
               pair&apos;s history.
             </p>
@@ -941,18 +941,18 @@ function ItemCard({
 
       {/* Edit details */}
       {editing && (
-        <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+        <div className="mt-3 space-y-2 rounded-lg border border-line p-3 dark:border-line">
           <input
             value={eName}
             onChange={(e) => setEName(e.target.value)}
             placeholder="Name"
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <select
               value={eCategory}
               onChange={(e) => setECategory(e.target.value)}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm capitalize outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="rounded-lg border border-line px-3 py-2 text-sm capitalize outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             >
               {FOOTWEAR_CATEGORIES.map((c) => (
                 <option key={c} value={c}>
@@ -964,7 +964,7 @@ function ItemCard({
               value={eColour}
               onChange={(e) => setEColour(e.target.value)}
               placeholder="Colour (optional)"
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           </div>
           {eCategory === "socks" && (
@@ -972,26 +972,26 @@ function ItemCard({
               value={eLabel}
               onChange={(e) => setELabel(e.target.value)}
               placeholder="Label (e.g. S1a — the tag on the sock)"
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           )}
-          <label className="block text-xs text-neutral-500">
+          <label className="block text-xs text-muted">
             Description &amp; story — the Decider reads this in detail
             <textarea
               value={eDescription}
               onChange={(e) => setEDescription(e.target.value)}
               rows={3}
               placeholder="Age, how they smell after a walk, what you'll do with them, memories…"
-              className="mt-1 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="mt-1 w-full resize-y rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           </label>
           {eCategory !== "socks" && (
-            <label className="block text-xs text-neutral-500">
+            <label className="block text-xs text-muted">
               Happy to wear these without socks?
               <select
                 value={eSockless}
                 onChange={(e) => setESockless(e.target.value as SocklessPref)}
-                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
               >
                 <option value="unset">No preference</option>
                 <option value="yes">Fine without socks</option>
@@ -999,13 +999,13 @@ function ItemCard({
               </select>
             </label>
           )}
-          <label className="block text-xs text-neutral-500">
+          <label className="block text-xs text-muted">
             Replace photo (optional — re-profiles it)
             <input
               type="file"
               accept="image/*"
               onChange={(e) => setEPhoto(e.target.files?.[0] ?? null)}
-              className="mt-1 block w-full text-sm text-neutral-500 file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm dark:file:bg-neutral-800"
+              className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm dark:file:bg-neutral-800"
             />
           </label>
           {editErr && <p className="text-xs text-red-500">{editErr}</p>}
@@ -1019,7 +1019,7 @@ function ItemCard({
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="rounded-lg px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               Cancel
             </button>
@@ -1028,8 +1028,8 @@ function ItemCard({
       )}
 
       {isSock && open && (
-        <div className="mt-3 space-y-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-          <label className="block text-xs text-neutral-500">
+        <div className="mt-3 space-y-2 rounded-lg border border-line p-3 dark:border-line">
+          <label className="block text-xs text-muted">
             Roughly how many hours did you wear them?
             <input
               type="number"
@@ -1038,7 +1038,7 @@ function ItemCard({
               value={hours}
               onChange={(e) => setHours(e.target.value)}
               placeholder="e.g. 4"
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
             />
           </label>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-600 dark:text-neutral-300">

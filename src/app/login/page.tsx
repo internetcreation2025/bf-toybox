@@ -51,7 +51,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-semibold tracking-tight">Sole Decider</h1>
-          <p className="mt-2 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-muted">
             Private. Sign in to continue.
           </p>
         </div>
@@ -66,13 +66,13 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogle}
           disabled={googleBusy}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 px-4 py-3 text-sm font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-line px-4 py-3 text-sm font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-line dark:hover:bg-neutral-900"
         >
           <GoogleIcon />
           {googleBusy ? "Redirecting…" : "Continue with Google"}
         </button>
 
-        <p className="mt-4 text-center text-xs text-neutral-400">
+        <p className="mt-4 text-center text-xs text-muted">
           Access is restricted to the owner&apos;s Google account.
         </p>
       </div>

@@ -58,12 +58,12 @@ export function PrepMemory({ items }: { items: PrepItem[] }) {
           className={`flex items-start justify-between gap-3 rounded-xl border p-4 ${
             dueNow
               ? "border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30"
-              : "border-neutral-200 dark:border-neutral-800"
+              : "border-line"
           }`}
         >
           <div className="min-w-0">
             {it.due && (
-              <p className="mb-1 text-xs font-medium text-neutral-500">
+              <p className="mb-1 text-xs font-medium text-muted">
                 {dueNow ? "Due · " : ""}
                 {fmtDue(it.due)}
               </p>
@@ -84,7 +84,7 @@ export function PrepMemory({ items }: { items: PrepItem[] }) {
               <button
                 onClick={() => resolve(it.id, "dismissed")}
                 disabled={busy === it.id}
-                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:border-neutral-700 dark:hover:text-neutral-100"
+                className="rounded-lg border border-line px-3 py-1.5 text-xs text-muted hover:text-neutral-900 disabled:opacity-50 dark:border-line dark:hover:text-neutral-100"
               >
                 Drop
               </button>
@@ -93,7 +93,7 @@ export function PrepMemory({ items }: { items: PrepItem[] }) {
               <button
                 onClick={() => addToCalendar(it)}
                 disabled={cal[it.id] === "adding" || cal[it.id] === "added"}
-                className="text-xs text-neutral-400 hover:text-neutral-900 disabled:opacity-60 dark:hover:text-neutral-100"
+                className="text-xs text-muted hover:text-neutral-900 disabled:opacity-60 dark:hover:text-neutral-100"
               >
                 {cal[it.id] === "added"
                   ? "Added to calendar ✓"

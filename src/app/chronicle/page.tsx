@@ -188,14 +188,14 @@ export default async function ChroniclePage() {
     <main className="mx-auto max-w-2xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">
         The Foot Chronicle
       </h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         The running record of your feet — every wear, wash, verdict and dare, in
         order.
       </p>
@@ -208,7 +208,7 @@ export default async function ChroniclePage() {
       </div>
 
       {!hasAnything && (
-        <p className="mt-10 text-sm text-neutral-400">
+        <p className="mt-10 text-sm text-muted">
           Nothing recorded yet. Roll a verdict, log some sock wear, or mark a
           bold moment, and it&apos;ll all show up here as one story.
         </p>
@@ -217,10 +217,10 @@ export default async function ChroniclePage() {
       <div className="mt-8 space-y-8">
         {groups.map((g) => (
           <section key={g.day}>
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
               {fmtDay(g.day)}
             </h2>
-            <ul className="mt-3 space-y-3 border-l border-neutral-200 pl-5 dark:border-neutral-800">
+            <ul className="mt-3 space-y-3 border-l border-line pl-5 dark:border-line">
               {g.items.map((e, i) => {
                 const body = (
                   <>
@@ -231,7 +231,7 @@ export default async function ChroniclePage() {
                     />
                     <p className="text-sm font-medium">{e.title}</p>
                     {e.detail && (
-                      <p className="mt-0.5 text-sm text-neutral-500">
+                      <p className="mt-0.5 text-sm text-muted">
                         {e.detail}
                       </p>
                     )}
@@ -258,11 +258,11 @@ export default async function ChroniclePage() {
       </div>
 
       {olderByDay.length > 0 && (
-        <section className="mt-10 border-t border-neutral-200 pt-8 dark:border-neutral-800">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+        <section className="mt-10 border-t border-line pt-8 dark:border-line">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
             Earlier
           </h2>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-muted">
             Older days, rolled up to keep the story readable.
           </p>
           <ul className="mt-4 space-y-2">
@@ -271,8 +271,8 @@ export default async function ChroniclePage() {
                 key={d.day}
                 className="flex items-baseline justify-between gap-4 text-sm"
               >
-                <span className="shrink-0 text-neutral-500">{fmtDay(d.day)}</span>
-                <span className="min-w-0 text-right text-neutral-500">
+                <span className="shrink-0 text-muted">{fmtDay(d.day)}</span>
+                <span className="min-w-0 text-right text-muted">
                   {d.summary}
                 </span>
               </li>

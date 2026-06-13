@@ -263,14 +263,14 @@ export default function FeetPage() {
         <div>
           <Link
             href="/"
-            className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+            className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
           >
             ← Dashboard
           </Link>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
             Teach it my feet
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-muted">
             Add as many photos per angle as you like — the more it sees, the
             better it knows your feet, and the more material the games have.
           </p>
@@ -287,22 +287,22 @@ export default function FeetPage() {
       )}
 
       {/* What the Decider wants a closer look at */}
-      <section className="mt-8 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <section className="mt-8 rounded-xl border border-line p-4 dark:border-line">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
             The Decider wants a closer look
           </h2>
           <button
             type="button"
             onClick={askDecider}
             disabled={asking}
-            className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-xs hover:bg-neutral-100 disabled:opacity-50 dark:border-line dark:hover:bg-neutral-900"
           >
             {asking ? "Asking…" : "Ask what she wants to see"}
           </button>
         </div>
         {requests.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-400">
+          <p className="mt-2 text-sm text-muted">
             Nothing outstanding. Ask, and she&apos;ll name a spot she&apos;d like
             a close-up of.
           </p>
@@ -311,12 +311,12 @@ export default function FeetPage() {
             {requests.map((r) => (
               <li
                 key={r.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line p-3 dark:border-line"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{r.label}</p>
                   {r.reason && (
-                    <p className="text-xs italic text-neutral-500">
+                    <p className="text-xs italic text-muted">
                       “{r.reason}”
                     </p>
                   )}
@@ -337,7 +337,7 @@ export default function FeetPage() {
                   <button
                     type="button"
                     onClick={() => dismissRequest(r.id)}
-                    className="text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                    className="text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
                   >
                     Dismiss
                   </button>
@@ -368,10 +368,10 @@ export default function FeetPage() {
 
       {/* Detail close-ups — labelled landmarks, grouped into per-spot timelines */}
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Detail close-ups
         </h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted">
           Extreme close-ups of specific spots — label each precisely (e.g. “pad
           of toe 2, right foot”). Each spot keeps a dated series, so you can
           watch it change over time. The Decider can refer to a spot, request a
@@ -379,12 +379,12 @@ export default function FeetPage() {
         </p>
 
         {/* Add a NEW spot */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-line p-4 dark:border-line">
           <input
             value={detailLabel}
             onChange={(e) => setDetailLabel(e.target.value)}
             placeholder='New spot, e.g. "between little toe & toe 4, right"'
-            className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
           <button
             type="button"
@@ -423,7 +423,7 @@ export default function FeetPage() {
           return (
             <div
               key={label}
-              className="mt-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+              className="mt-4 rounded-xl border border-line p-4 dark:border-line"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium">{label}</p>
@@ -434,7 +434,7 @@ export default function FeetPage() {
                       onClick={() =>
                         setOpenReadings((o) => ({ ...o, [label]: !o[label] }))
                       }
-                      className="text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                      className="text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
                     >
                       {reading ? "Hide reading" : "What it sees"}
                     </button>
@@ -446,7 +446,7 @@ export default function FeetPage() {
                       pendingLabelRef.current = label;
                       detailInputRef.current?.click();
                     }}
-                    className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+                    className="text-xs text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
                   >
                     + Add to this spot
                   </button>
@@ -464,7 +464,7 @@ export default function FeetPage() {
                     <button
                       type="button"
                       onClick={() => urls[r.id] && setLightbox(urls[r.id])}
-                      className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950"
+                      className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-line bg-neutral-50 dark:border-line dark:bg-neutral-950"
                     >
                       {urls[r.id] ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -474,7 +474,7 @@ export default function FeetPage() {
                           className="max-h-full max-w-full object-contain"
                         />
                       ) : (
-                        <span className="text-xs text-neutral-400">…</span>
+                        <span className="text-xs text-muted">…</span>
                       )}
                     </button>
                     <button
@@ -485,7 +485,7 @@ export default function FeetPage() {
                     >
                       ×
                     </button>
-                    <p className="mt-1 text-center text-[10px] text-neutral-400">
+                    <p className="mt-1 text-center text-[10px] text-muted">
                       {r.created_at.slice(0, 10)}
                       {!r.ai_fingerprint && " ·…"}
                     </p>
@@ -544,7 +544,7 @@ function AngleCard({
   const learned = rows.some((r) => r.ai_fingerprint);
 
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="rounded-xl border border-line p-4 dark:border-line">
       <div className="flex items-center justify-between">
         <span className="font-medium">{label}</span>
         <StatusDot busy={busy} count={rows.length} learned={learned} />
@@ -556,7 +556,7 @@ function AngleCard({
             <button
               type="button"
               onClick={() => urls[r.id] && onView(urls[r.id])}
-              className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950"
+              className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg border border-line bg-neutral-50 dark:border-line dark:bg-neutral-950"
             >
               {urls[r.id] ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -566,7 +566,7 @@ function AngleCard({
                   className="max-h-full max-w-full object-contain"
                 />
               ) : (
-                <span className="text-xs text-neutral-400">…</span>
+                <span className="text-xs text-muted">…</span>
               )}
             </button>
             <button
@@ -584,7 +584,7 @@ function AngleCard({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400 hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700"
+          className="flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-dashed border-line text-xs text-muted hover:border-accent disabled:opacity-60 dark:border-line"
         >
           {busy ? "…" : "+ Add"}
         </button>
@@ -602,25 +602,25 @@ function AngleCard({
         }}
       />
 
-      {busy && <p className="mt-2 text-xs text-neutral-500">Analysing…</p>}
+      {busy && <p className="mt-2 text-xs text-muted">Analysing…</p>}
 
       {/* One consolidated profile for this angle, built from all its photos */}
-      <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+      <div className="mt-3 border-t border-neutral-100 pt-3 dark:border-line">
         <div className="flex items-center justify-between gap-2">
           {profile ? (
             <button
               onClick={() => setShowProfile((v) => !v)}
-              className="text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+              className="text-xs font-medium text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
             >
               {showProfile ? "Hide profile" : "View profile"}
             </button>
           ) : (
-            <span className="text-xs text-neutral-400">No profile yet</span>
+            <span className="text-xs text-muted">No profile yet</span>
           )}
           <button
             onClick={onBuildProfile}
             disabled={profiling || rows.length === 0}
-            className="text-xs text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            className="text-xs text-muted hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
           >
             {profiling
               ? "Building…"
@@ -663,7 +663,7 @@ function StatusDot({
     ? "Not analysed"
     : "Empty";
   return (
-    <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+    <span className="flex items-center gap-1.5 text-xs text-muted">
       <span className={`h-2 w-2 rounded-full ${colour}`} />
       {text}
     </span>

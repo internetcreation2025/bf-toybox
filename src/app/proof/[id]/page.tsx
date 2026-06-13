@@ -121,7 +121,7 @@ export default function ProofPage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-xl p-8">
-        <p className="text-sm text-neutral-500">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       </main>
     );
   }
@@ -129,10 +129,10 @@ export default function ProofPage() {
   if (!challenge) {
     return (
       <main className="mx-auto max-w-xl p-8">
-        <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-900">
+        <Link href="/" className="text-sm text-muted hover:text-neutral-900">
           ← Dashboard
         </Link>
-        <p className="mt-4 text-sm text-neutral-500">
+        <p className="mt-4 text-sm text-muted">
           That challenge couldn&apos;t be found.
         </p>
       </main>
@@ -147,7 +147,7 @@ export default function ProofPage() {
     <main className="mx-auto max-w-xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
@@ -181,7 +181,7 @@ export default function ProofPage() {
           <div className="mt-6 flex gap-2">
             <Link
               href="/archive"
-              className="flex-1 rounded-lg border border-neutral-300 px-4 py-3 text-center text-sm dark:border-neutral-700"
+              className="flex-1 rounded-lg border border-line px-4 py-3 text-center text-sm dark:border-line"
             >
               View archive
             </Link>
@@ -197,8 +197,8 @@ export default function ProofPage() {
         <>
           {/* Checklist of what the proof must contain */}
           {requiredElements.length > 0 && (
-            <div className="mt-6 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <div className="mt-6 rounded-xl border border-line p-4 dark:border-line">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 Your proof photo must clearly show
               </p>
               <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
@@ -214,7 +214,7 @@ export default function ProofPage() {
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={busy}
-            className="mt-6 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-neutral-400 transition-colors hover:border-neutral-400 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-950"
+            className="mt-6 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed border-line bg-neutral-50 text-muted transition-colors hover:border-accent disabled:opacity-60 dark:border-line dark:bg-neutral-950"
           >
             {proofUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -257,7 +257,7 @@ export default function ProofPage() {
           />
 
           {busy && (
-            <p className="mt-4 text-center text-sm text-neutral-500">
+            <p className="mt-4 text-center text-sm text-muted">
               Examining your proof… this can take a few seconds.
             </p>
           )}

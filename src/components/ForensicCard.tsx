@@ -92,7 +92,7 @@ export function ForensicCard({
         {/* Required elements */}
         {verification.required_elements.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               Required elements
             </p>
             <ul className="mt-2 space-y-1.5">
@@ -110,7 +110,7 @@ export function ForensicCard({
                     className={
                       el.present
                         ? "text-neutral-700 dark:text-neutral-200"
-                        : "text-neutral-400 line-through"
+                        : "text-muted line-through"
                     }
                   >
                     {el.name}
@@ -124,7 +124,7 @@ export function ForensicCard({
         {/* Reasoning */}
         {verification.reasoning && (
           <div className="rounded-xl bg-neutral-50 p-4 dark:bg-neutral-900">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               Examiner's notes
             </p>
             <p className="mt-1.5 text-sm text-neutral-600 dark:text-neutral-300">

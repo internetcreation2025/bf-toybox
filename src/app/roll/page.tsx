@@ -214,7 +214,7 @@ export default function RollPage() {
     <main className="mx-auto max-w-xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
@@ -223,30 +223,30 @@ export default function RollPage() {
       {step === "schedule" && (
         <div className="mt-2">
           <h1 className="text-2xl font-semibold tracking-tight">Your day</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-muted">
             Pull your whole day from your calendar in one tap, or block it out by
             hand — set the time, what you&apos;re doing, and where.
           </p>
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs font-medium text-neutral-500">Date</span>
+              <span className="text-xs font-medium text-muted">Date</span>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
               />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-neutral-500">
+              <span className="text-xs font-medium text-muted">
                 Your area, for weather (optional)
               </span>
               <input
                 value={weatherLocation}
                 onChange={(e) => setWeatherLocation(e.target.value)}
                 placeholder="e.g. Reading, UK"
-                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
               />
             </label>
           </div>
@@ -255,33 +255,33 @@ export default function RollPage() {
             type="button"
             onClick={planWholeDay}
             disabled={gcalBusy}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-line px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-line dark:hover:bg-neutral-900"
           >
             {gcalBusy ? "Reading your calendar…" : "Plan my whole day from calendar"}
           </button>
           {gcalMsg && (
-            <p className="mt-2 text-xs text-neutral-500">{gcalMsg}</p>
+            <p className="mt-2 text-xs text-muted">{gcalMsg}</p>
           )}
 
           <div className="mt-4 space-y-3">
             {slots.map((s, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+                className="rounded-xl border border-line p-4 dark:border-line"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <input
                     value={s.label}
                     onChange={(e) => updateSlot(i, { label: e.target.value })}
                     placeholder="Time (e.g. 2–3pm, or now till 3)"
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm font-medium outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm font-medium outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
                   />
                   {slots.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeSlot(i)}
                       aria-label="Remove this block"
-                      className="shrink-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:hover:text-neutral-100"
+                      className="shrink-0 rounded-lg border border-line px-3 py-2 text-sm text-muted hover:text-neutral-900 dark:border-line dark:hover:text-neutral-100"
                     >
                       Remove
                     </button>
@@ -292,13 +292,13 @@ export default function RollPage() {
                     value={s.activity}
                     onChange={(e) => updateSlot(i, { activity: e.target.value })}
                     placeholder="Activity (e.g. coffee)"
-                    className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                    className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
                   />
                   <input
                     value={s.location}
                     onChange={(e) => updateSlot(i, { location: e.target.value })}
                     placeholder="Location (optional — e.g. Starbucks, town)"
-                    className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+                    className="rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
                   />
                 </div>
               </div>
@@ -308,7 +308,7 @@ export default function RollPage() {
           <button
             type="button"
             onClick={addSlot}
-            className="mt-3 w-full rounded-lg border border-dashed border-neutral-300 px-4 py-2.5 text-sm text-neutral-500 hover:border-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:hover:text-neutral-100"
+            className="mt-3 w-full rounded-lg border border-dashed border-line px-4 py-2.5 text-sm text-muted hover:border-neutral-500 hover:text-neutral-900 dark:border-line dark:hover:text-neutral-100"
           >
             + Add a time block
           </button>
@@ -329,7 +329,7 @@ export default function RollPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             What have you got on hand?
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-muted">
             Tap everything available to you right now.
           </p>
 
@@ -350,7 +350,7 @@ export default function RollPage() {
                   className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                     on
                       ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                      : "border-neutral-300 dark:border-neutral-700"
+                      : "border-line"
                   }`}
                 >
                   {c.name}
@@ -358,7 +358,7 @@ export default function RollPage() {
               );
             })}
             {catalogue.length === 0 && (
-              <p className="text-sm text-neutral-400">
+              <p className="text-sm text-muted">
                 No catalogue yet — add items below, or in{" "}
                 <Link href="/catalogue" className="underline">
                   Catalogue
@@ -372,14 +372,14 @@ export default function RollPage() {
             value={adHoc}
             onChange={(e) => setAdHoc(e.target.value)}
             placeholder="Other items, comma-separated (e.g. bare feet, white socks)"
-            className="mt-4 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="mt-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
 
           {/* What he's wearing right now (optional) */}
           {catalogue.length > 0 && (
-            <div className="mt-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <div className="mt-3 rounded-xl border border-line p-4 dark:border-line">
               <p className="text-sm font-medium">Wearing right now? (optional)</p>
-              <p className="mt-0.5 text-xs text-neutral-400">
+              <p className="mt-0.5 text-xs text-muted">
                 So the Decider knows what&apos;s already on — it might tell you to
                 keep them, change, or escalate.
               </p>
@@ -400,7 +400,7 @@ export default function RollPage() {
                       className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                         on
                           ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                          : "border-neutral-300 dark:border-neutral-700"
+                          : "border-line"
                       }`}
                     >
                       {c.name}
@@ -426,11 +426,11 @@ export default function RollPage() {
             onChange={(e) => setContext(e.target.value)}
             rows={3}
             placeholder="Anything the Decider should know? (optional) — e.g. lost my padel game, feet been in trainers all day, still have the socks I kept from last week"
-            className="mt-3 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm leading-relaxed outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm leading-relaxed outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
 
           {/* Smell index */}
-          <div className="mt-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="mt-3 rounded-xl border border-line p-4 dark:border-line">
             <label className="flex cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
@@ -442,7 +442,7 @@ export default function RollPage() {
                 <span className="text-sm font-medium">
                   Factor in smell
                 </span>
-                <span className="mt-0.5 block text-xs text-neutral-400">
+                <span className="mt-0.5 block text-xs text-muted">
                   Tell the Decider how strong your footwear/socks smell right now.
                 </span>
               </span>
@@ -450,7 +450,7 @@ export default function RollPage() {
 
             {smellOn && (
               <div className="mt-4 pl-7">
-                <div className="flex items-center justify-between text-xs text-neutral-500">
+                <div className="flex items-center justify-between text-xs text-muted">
                   <span>Fresh</span>
                   <span className="text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
                     {smell}/10
@@ -471,7 +471,7 @@ export default function RollPage() {
           </div>
 
           {/* Mystery envelope */}
-          <div className="mt-3 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="mt-3 rounded-xl border border-line p-4 dark:border-line">
             <label className="flex cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
@@ -483,7 +483,7 @@ export default function RollPage() {
                 <span className="text-sm font-medium">
                   Make it a timed mystery envelope
                 </span>
-                <span className="mt-0.5 block text-xs text-neutral-400">
+                <span className="mt-0.5 block text-xs text-muted">
                   Seal the verdict away — you won&apos;t see it until the timer
                   runs out.
                 </span>
@@ -499,7 +499,7 @@ export default function RollPage() {
                     className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
                       sealMinutes === o.minutes
                         ? "border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-white dark:text-neutral-900"
-                        : "border-neutral-300 dark:border-neutral-700"
+                        : "border-line"
                     }`}
                   >
                     {o.label}
@@ -514,7 +514,7 @@ export default function RollPage() {
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => setStep("schedule")}
-              className="rounded-lg border border-neutral-300 px-4 py-3 text-sm dark:border-neutral-700"
+              className="rounded-lg border border-line px-4 py-3 text-sm dark:border-line"
             >
               Back
             </button>
@@ -592,7 +592,7 @@ function RevealCard({
     return (
       <button
         onClick={onReveal}
-        className="mt-6 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-neutral-400 transition-transform hover:scale-[1.01] dark:border-neutral-700 dark:bg-neutral-950"
+        className="mt-6 flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line bg-neutral-50 text-muted transition-transform hover:scale-[1.01] dark:border-line dark:bg-neutral-950"
       >
         <span className="text-5xl font-bold">?</span>
         <span className="text-sm">Tap to reveal your verdict</span>

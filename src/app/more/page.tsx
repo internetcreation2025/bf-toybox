@@ -14,7 +14,7 @@ export default function MorePage() {
   return (
     <main className="mx-auto max-w-2xl p-6 sm:p-8">
       <h1 className="text-2xl font-semibold tracking-tight">More</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Everything beyond the main tabs.
       </p>
 
@@ -23,15 +23,15 @@ export default function MorePage() {
           <Link
             key={it.href}
             href={it.href}
-            className="flex items-center justify-between rounded-xl border border-neutral-200 p-4 transition-colors hover:border-neutral-400 active:bg-neutral-50 dark:border-neutral-800 dark:hover:border-neutral-600 dark:active:bg-neutral-900"
+            className="flex items-center justify-between rounded-xl border border-line p-4 transition-colors hover:border-accent active:bg-neutral-50 dark:border-line dark:active:bg-neutral-900"
           >
             <span>
               <span className="font-medium">{it.label}</span>
-              <span className="mt-0.5 block text-xs text-neutral-500">
+              <span className="mt-0.5 block text-xs text-muted">
                 {it.hint}
               </span>
             </span>
-            <span aria-hidden className="text-neutral-400">
+            <span aria-hidden className="text-muted">
               →
             </span>
           </Link>
@@ -41,7 +41,7 @@ export default function MorePage() {
       <form action="/auth/signout" method="post" className="mt-8">
         <button
           type="submit"
-          className="w-full rounded-xl border border-neutral-300 p-3 text-sm font-medium transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
+          className="w-full rounded-xl border border-line p-3 text-sm font-medium transition-colors hover:bg-neutral-100 dark:border-line dark:hover:bg-neutral-900"
         >
           Sign out
         </button>

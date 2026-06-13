@@ -44,26 +44,26 @@ export function UpcomingDays() {
 
   return (
     <section className="mt-8">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
         Next 3 days
       </h2>
 
       {state.kind === "disconnected" && (
         <Link
           href="/settings"
-          className="mt-3 flex items-center justify-between rounded-xl border border-neutral-200 p-4 text-sm transition-colors hover:border-neutral-400 dark:border-neutral-800"
+          className="mt-3 flex items-center justify-between rounded-xl border border-line p-4 text-sm transition-colors hover:border-accent dark:border-line"
         >
-          <span className="text-neutral-500">
+          <span className="text-muted">
             Connect your Google Calendar so the Decider can see your days.
           </span>
-          <span aria-hidden className="text-neutral-400">
+          <span aria-hidden className="text-muted">
             →
           </span>
         </Link>
       )}
 
       {state.kind === "error" && (
-        <p className="mt-3 text-sm text-neutral-400">
+        <p className="mt-3 text-sm text-muted">
           Couldn&apos;t read your calendar just now.
         </p>
       )}
@@ -72,11 +72,11 @@ export function UpcomingDays() {
         <div className="mt-3 space-y-5">
           {buildDays(state.events).map((day) => (
             <div key={day.key}>
-              <p className="text-xs font-semibold text-neutral-500">
+              <p className="text-xs font-semibold text-muted">
                 {day.label}
               </p>
               {day.events.length === 0 ? (
-                <p className="mt-1.5 text-sm text-neutral-400">
+                <p className="mt-1.5 text-sm text-muted">
                   Nothing on — home.
                 </p>
               ) : (
@@ -84,15 +84,15 @@ export function UpcomingDays() {
                   {day.events.map((e, i) => (
                     <li
                       key={i}
-                      className="flex items-baseline gap-3 rounded-xl border border-neutral-200 p-3 text-sm dark:border-neutral-800"
+                      className="flex items-baseline gap-3 rounded-xl border border-line p-3 text-sm dark:border-line"
                     >
-                      <span className="w-24 shrink-0 tabular-nums text-neutral-500">
+                      <span className="w-24 shrink-0 tabular-nums text-muted">
                         {e.allDay ? "All day" : fmtRange(e.startIso, e.endIso)}
                       </span>
                       <span className="min-w-0">
                         <span className="font-medium">{e.summary}</span>
                         {e.location && (
-                          <span className="text-neutral-400"> · {e.location}</span>
+                          <span className="text-muted"> · {e.location}</span>
                         )}
                       </span>
                     </li>

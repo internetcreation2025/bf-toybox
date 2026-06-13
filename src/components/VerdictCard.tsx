@@ -35,7 +35,7 @@ export function VerdictCard({ data }: { data: VerdictData }) {
         >
           {meta.label}
         </span>
-        <span className="text-xs uppercase tracking-wide text-neutral-400">
+        <span className="text-xs uppercase tracking-wide text-muted">
           {data.verdictType === "dare" ? "Dare" : "Verdict"}
         </span>
       </div>
@@ -59,7 +59,7 @@ export function VerdictCard({ data }: { data: VerdictData }) {
 
       {data.proofRequired && (
         <div className="mt-5 rounded-xl bg-neutral-50 p-4 dark:bg-neutral-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
             Proof required
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
@@ -67,7 +67,7 @@ export function VerdictCard({ data }: { data: VerdictData }) {
               <li key={i}>{el}</li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-neutral-400">
+          <p className="mt-3 text-xs text-muted">
             Submit your photo proof to lock in the win.
           </p>
         </div>

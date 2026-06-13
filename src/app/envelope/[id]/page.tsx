@@ -68,7 +68,7 @@ export default function EnvelopePage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-xl p-8">
-        <p className="text-sm text-neutral-500">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       </main>
     );
   }
@@ -76,10 +76,10 @@ export default function EnvelopePage() {
   if (!info) {
     return (
       <main className="mx-auto max-w-xl p-8">
-        <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-900">
+        <Link href="/" className="text-sm text-muted hover:text-neutral-900">
           ← Dashboard
         </Link>
-        <p className="mt-4 text-sm text-neutral-500">
+        <p className="mt-4 text-sm text-muted">
           That envelope couldn&apos;t be found.
         </p>
       </main>
@@ -97,7 +97,7 @@ export default function EnvelopePage() {
     <main className="mx-auto max-w-xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
@@ -120,14 +120,14 @@ export default function EnvelopePage() {
             )}
             <Link
               href="/"
-              className="flex-1 rounded-lg border border-neutral-300 px-4 py-3 text-center text-sm dark:border-neutral-700"
+              className="flex-1 rounded-lg border border-line px-4 py-3 text-center text-sm dark:border-line"
             >
               Done
             </Link>
           </div>
         </div>
       ) : (
-        <div className="mt-6 flex flex-col items-center rounded-2xl border-2 border-dashed border-neutral-300 bg-neutral-50 p-10 text-center dark:border-neutral-700 dark:bg-neutral-950">
+        <div className="mt-6 flex flex-col items-center rounded-2xl border-2 border-dashed border-line bg-neutral-50 p-10 text-center dark:border-line dark:bg-neutral-950">
           <svg
             width="56"
             height="56"
@@ -137,7 +137,7 @@ export default function EnvelopePage() {
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-neutral-400"
+            className="text-muted"
             aria-hidden
           >
             <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -145,7 +145,7 @@ export default function EnvelopePage() {
           </svg>
           {ready || opened ? (
             <>
-              <p className="mt-4 text-sm text-neutral-500">
+              <p className="mt-4 text-sm text-muted">
                 The wait is over. Open it.
               </p>
               <button
@@ -158,11 +158,11 @@ export default function EnvelopePage() {
             </>
           ) : (
             <>
-              <p className="mt-4 text-sm text-neutral-500">Sealed. Unlocks in</p>
+              <p className="mt-4 text-sm text-muted">Sealed. Unlocks in</p>
               <p className="mt-1 font-mono text-4xl font-semibold tabular-nums">
                 {fmtCountdown(remaining)}
               </p>
-              <p className="mt-3 text-xs text-neutral-400">
+              <p className="mt-3 text-xs text-muted">
                 Come back when the timer hits zero — you can leave this page.
               </p>
             </>

@@ -108,19 +108,19 @@ export default function VisionTestPage() {
     <main className="mx-auto max-w-xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Vision test</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Proves the whole chain works: your phone photo uploads, and the AI reads
         fine detail. Write the code below by hand, photograph it, and upload.
       </p>
 
       {/* The challenge code */}
-      <div className="mt-6 rounded-2xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
-        <p className="text-xs uppercase tracking-wide text-neutral-400">
+      <div className="mt-6 rounded-2xl border border-line p-6 text-center dark:border-line">
+        <p className="text-xs uppercase tracking-wide text-muted">
           Write this exactly
         </p>
         <p className="mt-2 font-mono text-4xl font-bold tracking-[0.2em]">
@@ -128,7 +128,7 @@ export default function VisionTestPage() {
         </p>
         <button
           onClick={reset}
-          className="mt-3 text-xs text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
+          className="mt-3 text-xs text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
         >
           New code
         </button>
@@ -184,8 +184,8 @@ export default function VisionTestPage() {
           </div>
 
           {outcome.description && (
-            <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            <div className="rounded-xl border border-line p-4 dark:border-line">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                 What the AI saw
               </p>
               <p className="mt-1 text-sm italic text-neutral-700 dark:text-neutral-300">
@@ -195,7 +195,7 @@ export default function VisionTestPage() {
           )}
 
           {outcome.previewUrl && (
-            <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
+            <div className="overflow-hidden rounded-xl border border-line">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={outcome.previewUrl}
@@ -207,7 +207,7 @@ export default function VisionTestPage() {
 
           <button
             onClick={reset}
-            className="w-full rounded-lg border border-neutral-300 px-4 py-3 text-sm dark:border-neutral-700"
+            className="w-full rounded-lg border border-line px-4 py-3 text-sm dark:border-line"
           >
             Test again with a new code
           </button>

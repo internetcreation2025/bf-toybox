@@ -149,12 +149,12 @@ export default async function ReportsPage() {
     <main className="mx-auto max-w-2xl p-8">
       <Link
         href="/"
-        className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+        className="text-sm text-muted hover:text-neutral-900 dark:hover:text-neutral-100"
       >
         ← Dashboard
       </Link>
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Reports</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted">
         Your habits, drawn from what you&apos;ve logged — wear, washes, bold
         moments and the places you&apos;ve been.
       </p>
@@ -202,7 +202,7 @@ export default async function ReportsPage() {
       {/* Wash discipline */}
       <Section title="Wash discipline">
         {avgWearsBeforeWash === null ? (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-muted">
             No wash cycles logged yet. Log wear and a wash on a sock to start
             building this.
           </p>
@@ -231,7 +231,7 @@ export default async function ReportsPage() {
       {/* Most-worn */}
       <Section title="Most-worn pairs">
         {mostWorn.length === 0 ? (
-          <p className="text-sm text-neutral-400">Nothing logged yet.</p>
+          <p className="text-sm text-muted">Nothing logged yet.</p>
         ) : (
           <ul className="space-y-2">
             {mostWorn.map((f) => {
@@ -252,7 +252,7 @@ export default async function ReportsPage() {
                     {f.label ? `${f.label} · ` : ""}
                     {f.name}
                   </span>
-                  <span className="shrink-0 text-neutral-500">
+                  <span className="shrink-0 text-muted">
                     {Math.round(f.worn_hours ?? 0)}h
                     {(f.played_count ?? 0) > 0 && ` · ${f.played_count} games`}
                     {smell !== null && ` · ~${smell}/10`}
@@ -267,7 +267,7 @@ export default async function ReportsPage() {
       {/* Bold moments */}
       <Section title="Recent bold moments">
         {boldRows.length === 0 ? (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-muted">
             None logged yet. Use “Bold moment” on a sock when you push a
             boundary in it.
           </p>
@@ -278,13 +278,13 @@ export default async function ReportsPage() {
                 <span className="min-w-0">
                   {b.note ?? "A boundary pushed"}
                   {byId.get(b.sock_id) && (
-                    <span className="text-neutral-400">
+                    <span className="text-muted">
                       {" "}
                       · {byId.get(b.sock_id)!.label || byId.get(b.sock_id)!.name}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 text-neutral-400">
+                <span className="shrink-0 text-muted">
                   {b.created_at.slice(0, 10)}
                 </span>
               </li>
@@ -306,12 +306,12 @@ function Tile({
   sub: string;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="rounded-xl border border-line p-4 dark:border-line">
       <div className="text-2xl font-semibold tabular-nums">{value}</div>
       <div className="mt-1 text-xs font-medium text-neutral-600 dark:text-neutral-300">
         {label}
       </div>
-      <div className="text-xs text-neutral-400">{sub}</div>
+      <div className="text-xs text-muted">{sub}</div>
     </div>
   );
 }
@@ -325,7 +325,7 @@ function Section({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
         {title}
       </h2>
       <div className="mt-3">{children}</div>
