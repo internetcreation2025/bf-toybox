@@ -165,6 +165,24 @@ export default async function Home() {
         </span>
       </Link>
 
+      <nav className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-neutral-500">
+        <Link href="/feet" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+          My feet
+        </Link>
+        <Link href="/catalogue" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+          Catalogue
+        </Link>
+        <Link href="/stats" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+          Stats
+        </Link>
+        <Link href="/reports" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+          Reports
+        </Link>
+        <Link href="/settings" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+          Settings
+        </Link>
+      </nav>
+
       <p className="mt-10 text-center text-xs text-neutral-400">
         Roll for a verdict, complete it, keep the streak alive.
       </p>
