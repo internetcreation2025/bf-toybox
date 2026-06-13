@@ -29,16 +29,24 @@ type LogRow = {
 export default async function ReportsPage() {
   const supabase = await createClient();
 
-  const [{ data: footwearData }, { data: challenges }] = await Promise.all([
-    supabase
-      .from("bf_footwear")
-      .select(
-        "id, name, category, label, worn_hours, played_count, dried_count, sockless_count, wash_count, last_washed_at, retired"
-      ),
-    supabase
-      .from("bf_challenges")
-      .select("status, schedule_json"),
-  ]);
+  const [{ data: footwearData }, { data: challenges }, footChecks] =
+    await Promise.all([
+      supabase
+        .from("bf_footwear")
+        .select(
+          "id, name, category, label, worn_hours, played_count, dried_count, sockless_count, wash_count, last_washed_at, retired"
+        ),
+      supabase.from("bf_challenges").select("status, schedule_json"),
+      // Foot reveals (resilient — no-ops until bf_foot_checks exists).
+      supabase
+        .from("bf_foot_checks")
+        .select("difficult, passed")
+        .eq("passed", true),
+    ]);
+
+  const checks = (footChecks.data ?? []) as Array<{ difficult: boolean | null }>;
+  const revealCount = checks.length;
+  const trickyReveals = checks.filter((c) => c.difficult).length;
 
   // Sock log — tolerate the pre-migration schema that has no `note` column.
   let logs: LogRow[] = [];
@@ -178,6 +186,16 @@ export default async function ReportsPage() {
           label="Overdue socks"
           value={overdueSocks.length}
           sub="want a wash now"
+        />
+        <Tile
+          label="Foot reveals"
+          value={revealCount}
+          sub="shown on demand"
+        />
+        <Tile
+          label="Tricky reveals"
+          value={trickyReveals}
+          sub="pulled off somewhere awkward"
         />
       </div>
 

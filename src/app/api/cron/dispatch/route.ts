@@ -151,11 +151,20 @@ async function handle(request: Request) {
       if (Date.now() - last < NUDGE_MIN_GAP_MS) continue;
       if (Math.random() > NUDGE_PER_MIN_CHANCE) continue;
 
-      const payload = {
-        title: "Sole Decider",
-        body: "What's on your feet right now?",
-        url: "/whats-on",
-      };
+      // Sometimes she just wonders what's on his feet; sometimes she wants to
+      // SEE them then and there (lands on the proof flow).
+      const reveal = Math.random() < 0.4;
+      const payload = reveal
+        ? {
+            title: "Sole Decider",
+            body: "Show me your feet — wherever you are.",
+            url: "/whats-on?reveal=1",
+          }
+        : {
+            title: "Sole Decider",
+            body: "What's on your feet right now?",
+            url: "/whats-on",
+          };
       const { data: subs } = await admin
         .from("bf_push_subs")
         .select("endpoint, p256dh, auth")

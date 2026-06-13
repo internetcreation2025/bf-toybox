@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { resizeImage } from "@/lib/image";
 
 type Item = {
   id: string;
@@ -22,6 +23,14 @@ export default function WhatsOnPage() {
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState("");
   const [error, setError] = useState("");
+
+  // "Show me your feet" proof flow.
+  const [revealReq, setRevealReq] = useState<string | null>(null);
+  const [revealBusy, setRevealBusy] = useState(false);
+  const [revealResult, setRevealResult] = useState<string | null>(null);
+  const [revealPassed, setRevealPassed] = useState<boolean | null>(null);
+  const [difficult, setDifficult] = useState(false);
+  const proofRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -43,15 +52,14 @@ export default function WhatsOnPage() {
     setError("");
     setReply("");
     try {
-      const nowLabel = new Date().toLocaleString([], {
-        weekday: "long",
-        hour: "numeric",
-        minute: "2-digit",
-      });
       const res = await fetch("/api/whats-on", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ onFeet: onFeet.trim(), location: location.trim(), nowLabel }),
+        body: JSON.stringify({
+          onFeet: onFeet.trim(),
+          location: location.trim(),
+          nowLabel: nowLabel(),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "She didn't answer — try again.");
@@ -60,6 +68,75 @@ export default function WhatsOnPage() {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setBusy(false);
+    }
+  }
+
+  const nowLabel = () =>
+    new Date().toLocaleString([], {
+      weekday: "long",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+  const askToSeeFeet = useCallback(async () => {
+    setRevealBusy(true);
+    setError("");
+    setRevealResult(null);
+    setRevealPassed(null);
+    try {
+      const res = await fetch("/api/feet/reveal-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: location.trim(), nowLabel: nowLabel() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "She didn't answer — try again.");
+      setRevealReq(json.request);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setRevealBusy(false);
+    }
+  }, [location]);
+
+  // A reveal nudge lands here with ?reveal=1 — open the proof flow straight away.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("reveal") === "1") askToSeeFeet();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function submitProof(file: File) {
+    if (!revealReq) return;
+    setRevealBusy(true);
+    setError("");
+    setRevealResult(null);
+    try {
+      const blob = await resizeImage(file);
+      const dataUrl: string = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result as string);
+        r.onerror = rej;
+        r.readAsDataURL(blob);
+      });
+      const res = await fetch("/api/feet/reveal-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: dataUrl,
+          request: revealReq,
+          location: location.trim(),
+          difficult,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't check that — try again.");
+      setRevealPassed(!!json.passed);
+      setRevealResult(json.message || (json.passed ? "Good." : "Not quite."));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setRevealBusy(false);
     }
   }
 
@@ -146,6 +223,91 @@ export default function WhatsOnPage() {
           </button>
         </div>
       )}
+
+      {/* Show me your feet — proof flow */}
+      <section className="mt-8 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+        {!revealReq ? (
+          <button
+            onClick={askToSeeFeet}
+            disabled={revealBusy}
+            className="text-sm font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+          >
+            {revealBusy ? "She's deciding…" : "Dare me — have her ask to see my feet"}
+          </button>
+        ) : (
+          <div className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+              She wants to see
+            </p>
+            <p className="mt-2 text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
+              {revealReq}
+            </p>
+
+            {revealResult ? (
+              <>
+                <p
+                  className={`mt-4 rounded-lg p-3 text-sm leading-relaxed ${
+                    revealPassed
+                      ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400"
+                      : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                  }`}
+                >
+                  {revealPassed && "✓ Logged. "}
+                  {revealResult}
+                </p>
+                <button
+                  onClick={() => {
+                    setRevealReq(null);
+                    setRevealResult(null);
+                    setRevealPassed(null);
+                    setDifficult(false);
+                  }}
+                  className="mt-3 text-xs text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
+                >
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <label className="mt-4 flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={difficult}
+                    onChange={(e) => setDifficult(e.target.checked)}
+                    className="h-4 w-4 accent-neutral-900 dark:accent-white"
+                  />
+                  This was a tricky/risky place to get a foot out
+                </label>
+                <button
+                  onClick={() => proofRef.current?.click()}
+                  disabled={revealBusy}
+                  className="mt-4 w-full rounded-xl bg-neutral-900 p-3 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+                >
+                  {revealBusy ? "Checking…" : "Take the photo"}
+                </button>
+                <input
+                  ref={proofRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) submitProof(f);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  onClick={() => setRevealReq(null)}
+                  className="mt-3 block text-xs text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-300"
+                >
+                  Not now
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
