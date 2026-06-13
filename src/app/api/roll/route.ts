@@ -340,6 +340,7 @@ export async function POST(request: Request) {
       label: (row?.label as string | null | undefined) ?? null,
       retired: (row?.retired as boolean | null | undefined) ?? null,
       last_worn_at: (row?.last_worn_at as string | null | undefined) ?? null,
+      description: (row?.description as string | null | undefined) ?? null,
     };
     return footwearLine(ref, item);
   });

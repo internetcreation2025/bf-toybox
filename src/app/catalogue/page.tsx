@@ -18,6 +18,7 @@ type Item = {
   category: string;
   colour: string | null;
   notes: string | null;
+  description: string | null;
   photo_path: string | null;
   dossier: Dossier | null;
   worn_hours: number | null;
@@ -56,6 +57,7 @@ export default function CataloguePage() {
   const [category, setCategory] = useState<FootwearCategory>("trainers");
   const [colour, setColour] = useState("");
   const [notes, setNotes] = useState("");
+  const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [sockless, setSockless] = useState<SocklessPref>("unset");
   const [label, setLabel] = useState("");
@@ -152,10 +154,19 @@ export default function CataloguePage() {
           .update({ label: label.trim() })
           .eq("id", inserted.id);
       }
+      // Description/story (resilient — separate update so it saves even on a
+      // pre-migration schema without the column).
+      if (description.trim()) {
+        await supabase
+          .from("bf_footwear")
+          .update({ description: description.trim() })
+          .eq("id", inserted.id);
+      }
 
       setName("");
       setColour("");
       setNotes("");
+      setDescription("");
       setPhoto(null);
       setCategory("trainers");
       setSockless("unset");
@@ -237,6 +248,16 @@ export default function CataloguePage() {
             />
           )}
         </div>
+        <label className="block text-xs text-neutral-500">
+          Description &amp; story — the Decider reads this in detail
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            placeholder="Anything she should know — age, how they smell after a walk, what you'll do with them (smell, kiss, lick…), memories. The more, the better she knows them."
+            className="mt-1 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+          />
+        </label>
         {category !== "socks" && (
           <label className="block text-xs text-neutral-500">
             Happy to wear these without socks?
@@ -376,6 +397,7 @@ function ItemCard({
     boolToPref(it.sockless_ok)
   );
   const [eLabel, setELabel] = useState(it.label ?? "");
+  const [eDescription, setEDescription] = useState(it.description ?? "");
   const [editErr, setEditErr] = useState("");
 
   function startEdit() {
@@ -386,6 +408,7 @@ function ItemCard({
     setEPhoto(null);
     setESockless(boolToPref(it.sockless_ok));
     setELabel(it.label ?? "");
+    setEDescription(it.description ?? "");
     setEditErr("");
     setEditing(true);
   }
@@ -420,6 +443,11 @@ function ItemCard({
       await supabase
         .from("bf_footwear")
         .update({ label: eLabel.trim() || null })
+        .eq("id", it.id);
+      // Description/story (resilient — separate update).
+      await supabase
+        .from("bf_footwear")
+        .update({ description: eDescription.trim() || null })
         .eq("id", it.id);
 
       // New photo → upload, point the row at it, and re-profile.
@@ -712,6 +740,11 @@ function ItemCard({
               {it.dossier.summary}
             </p>
           )}
+          {it.description && (
+            <p className="mt-1 whitespace-pre-line text-xs text-neutral-600 dark:text-neutral-300">
+              {it.description}
+            </p>
+          )}
           <p className="mt-1 text-xs text-neutral-400">
             {wearBits.length ? wearBits.join(" · ") : "Fresh / clean"}
           </p>
@@ -961,6 +994,16 @@ function ItemCard({
               className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
             />
           )}
+          <label className="block text-xs text-neutral-500">
+            Description &amp; story — the Decider reads this in detail
+            <textarea
+              value={eDescription}
+              onChange={(e) => setEDescription(e.target.value)}
+              rows={3}
+              placeholder="Age, how they smell after a walk, what you'll do with them, memories…"
+              className="mt-1 w-full resize-y rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+          </label>
           {eCategory !== "socks" && (
             <label className="block text-xs text-neutral-500">
               Happy to wear these without socks?

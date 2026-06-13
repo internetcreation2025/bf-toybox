@@ -173,6 +173,7 @@ export type FootwearForRoll = {
   label?: string | null;
   retired?: boolean | null;
   last_worn_at?: string | null;
+  description?: string | null;
 };
 
 // One human line describing an item's dossier + live wear, for the roll prompt.
@@ -206,6 +207,11 @@ export function footwearLine(ref: string, f: FootwearForRoll): string {
         : "— sockless: he'd rather not (protect from smell)"
     );
   }
+  // Mike's own description/story for this item — his words, treated as key
+  // knowledge (age, how they smell after wear, what he's willing to do with
+  // them). Put last so it reads as the standout detail.
+  const desc = f.description?.trim();
+  if (desc) bits.push(`— Mike says: “${desc}”`);
   return bits.join(" ");
 }
 
