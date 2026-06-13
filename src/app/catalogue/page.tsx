@@ -750,13 +750,13 @@ function ItemCard({
           )}
           {isSock && it.verified_at && (
             <span
-              title={`Identity confirmed from the label on ${it.verified_at.slice(
-                0,
-                10
-              )}`}
-              className="ml-1.5 mt-1.5 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400"
+              title={`Label ${
+                it.label ? `“${it.label}” ` : ""
+              }confirmed from a photo on ${it.verified_at.slice(0, 10)}`}
+              className="ml-1.5 mt-1.5 inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-950/50 dark:text-green-400"
             >
-              ✓ Verified
+              <span aria-hidden>✓</span> Label verified
+              {it.label ? `: ${it.label}` : ""}
             </span>
           )}
         </div>

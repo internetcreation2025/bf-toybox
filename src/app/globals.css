@@ -1,21 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Warm ivory canvas, deep warm ink, signature green (from the app icon). */
+  --background: #faf7f2;
+  --foreground: #211d18;
+  --surface: #ffffff;
+  --surface-2: #f4efe7;
+  --line: #e9e2d6;
+  --muted: #7c7468;
+  --accent: #2f7d57;
+  --accent-soft: #e6f0ea;
+  --on-accent: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #14120f;
+    --foreground: #ece6dc;
+    --surface: #1c1916;
+    --surface-2: #232019;
+    --line: #2e2a23;
+    --muted: #9a9184;
+    --accent: #56b485;
+    --accent-soft: #1d2c24;
+    --on-accent: #0f140f;
   }
 }
 
@@ -25,6 +48,28 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Page titles carry the editorial serif voice. */
+h1 {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto;
+}
+
+/* Soft entrance for cards/sections. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Utility: clear the iOS home indicator / notch for fixed app chrome. */

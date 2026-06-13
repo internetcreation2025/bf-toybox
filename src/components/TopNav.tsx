@@ -25,7 +25,7 @@ export function TopNav() {
   }
 
   return (
-    <nav className="sticky top-0 z-40 hidden border-b border-neutral-200 bg-white/80 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/80 sm:block">
+    <nav className="sticky top-0 z-40 hidden border-b border-line bg-surface/80 backdrop-blur sm:block">
       <div className="mx-auto flex max-w-3xl gap-1 overflow-x-auto px-4 py-2">
         {LINKS.map((l) => {
           const active =
@@ -36,8 +36,8 @@ export function TopNav() {
               href={l.href}
               className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                  : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-900 dark:hover:text-neutral-100"
+                  ? "bg-accent text-on-accent"
+                  : "text-muted hover:bg-surface-2 hover:text-foreground"
               }`}
             >
               {l.label}

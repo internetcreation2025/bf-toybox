@@ -24,7 +24,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/90 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/90 sm:hidden">
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/90 backdrop-blur sm:hidden">
       <div className="mx-auto flex max-w-md items-stretch justify-around">
         {TABS.map((t) => {
           const active =
@@ -35,9 +35,7 @@ export function BottomNav() {
               key={t.href}
               href={t.href}
               className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
-                active
-                  ? "text-neutral-900 dark:text-white"
-                  : "text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                active ? "text-accent" : "text-muted hover:text-foreground"
               }`}
             >
               <Icon active={active} />
