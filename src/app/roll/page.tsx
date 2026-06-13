@@ -9,7 +9,15 @@ import { buildDaySchedule, type DayEvent } from "@/lib/day-schedule";
 import { VerdictCard } from "@/components/VerdictCard";
 
 type Slot = { label: string; activity: string; location: string };
-type FootwearItem = { id?: string; name: string; category: string };
+type FootwearItem = {
+  id?: string;
+  name: string;
+  category: string;
+  label?: string | null;
+};
+
+// Pseudo-option for the "wearing right now" list — selecting it means sockless.
+const BARE = "Bare feet";
 
 type RollResult = {
   id: string;
@@ -24,12 +32,6 @@ type RollResult = {
   proofElements: string[];
   today: string;
 };
-
-const SEAL_OPTIONS = [
-  { label: "30 min", minutes: 30 },
-  { label: "1 hour", minutes: 60 },
-  { label: "2 hours", minutes: 120 },
-];
 
 export default function RollPage() {
   const supabase = createClient();
@@ -123,15 +125,19 @@ export default function RollPage() {
   const loadCatalogue = useCallback(async () => {
     const { data } = await supabase
       .from("bf_footwear")
-      .select("id, name, category")
-      .order("created_at", { ascending: false });
-    setCatalogue((data ?? []) as FootwearItem[]);
+      .select("id, name, category, label, retired")
+      .order("category", { ascending: true });
+    const items = ((data ?? []) as Array<FootwearItem & { retired?: boolean }>)
+      .filter((c) => !c.retired);
+    setCatalogue(items);
+    // At home, assume everything is to hand — pre-select the lot. He can deselect
+    // anything he genuinely hasn't got with him (e.g. when out).
+    setSelected(new Set(items.map((c) => c.name)));
     setCatalogueLoaded(true);
   }, [supabase]);
 
   // ── what he's already wearing right now (optional) ──
   const [wearingSel, setWearingSel] = useState<Set<string>>(new Set());
-  const [wearingSockless, setWearingSockless] = useState(false);
 
   useEffect(() => {
     loadCatalogue();
@@ -162,14 +168,6 @@ export default function RollPage() {
     return [...fromCatalogue, ...extras];
   }, [catalogue, selected, adHoc]);
 
-  // ── smell index ──
-  const [smellOn, setSmellOn] = useState(false);
-  const [smell, setSmell] = useState(5);
-
-  // ── mystery envelope ──
-  const [seal, setSeal] = useState(false);
-  const [sealMinutes, setSealMinutes] = useState(60);
-
   // ── rolling / result ──
   const [rolling, setRolling] = useState(false);
   const [error, setError] = useState("");
@@ -177,7 +175,7 @@ export default function RollPage() {
   const [revealed, setRevealed] = useState(false);
   const [usedDouble, setUsedDouble] = useState(false);
 
-  async function doRoll(opts: { doubleOrNothing?: boolean; sealMinutes?: number }) {
+  async function doRoll(opts: { doubleOrNothing?: boolean }) {
     setRolling(true);
     setError("");
     setRevealed(false);
@@ -189,15 +187,13 @@ export default function RollPage() {
           schedule: filledSlots,
           footwear: onHand,
           wearing: {
-            names: [...wearingSel],
-            sockless: wearingSockless,
+            names: [...wearingSel].filter((n) => n !== BARE),
+            sockless: wearingSel.has(BARE),
           },
           context: context.trim(),
-          smell: smellOn ? smell : undefined,
           date,
           weatherLocation: weatherLocation.trim() || undefined,
           doubleOrNothing: !!opts.doubleOrNothing,
-          sealMinutes: opts.sealMinutes ?? 0,
           nowLabel: new Date().toLocaleString([], {
             weekday: "long",
             hour: "numeric",
@@ -209,13 +205,6 @@ export default function RollPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Roll failed");
-
-      // Sealed → straight to the envelope; the verdict stays hidden until it
-      // unlocks.
-      if (json.sealed) {
-        router.push(`/envelope/${json.id}`);
-        return;
-      }
 
       setResult(json as RollResult);
       setStep("result");
@@ -344,96 +333,124 @@ export default function RollPage() {
       {step === "footwear" && (
         <div className="mt-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            What have you got on hand?
+            What&apos;s on hand?
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Tap everything available to you right now.
+            At home, everything&apos;s assumed to hand — just untick anything you
+            haven&apos;t got with you.
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            {catalogue.map((c) => {
-              const on = selected.has(c.name);
-              return (
-                <button
-                  key={c.name}
-                  onClick={() =>
-                    setSelected((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(c.name)) next.delete(c.name);
-                      else next.add(c.name);
-                      return next;
-                    })
-                  }
-                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                    on
-                      ? "border-accent bg-accent text-on-accent"
-                      : "border-line"
-                  }`}
-                >
-                  {c.name}
-                </button>
-              );
-            })}
-            {catalogue.length === 0 && (
-              <p className="text-sm text-muted">
-                No catalogue yet — add items below, or in{" "}
-                <Link href="/catalogue" className="underline">
-                  Catalogue
-                </Link>
-                .
-              </p>
-            )}
-          </div>
+          {catalogue.length === 0 ? (
+            <p className="mt-6 text-sm text-muted">
+              No catalogue yet — add your socks and shoes in{" "}
+              <Link href="/catalogue" className="underline">
+                Wardrobe
+              </Link>
+              , or list ad-hoc items below.
+            </p>
+          ) : (
+            <div className="mt-6 space-y-5">
+              {(["socks", "shoes"] as const).map((group) => {
+                const list =
+                  group === "socks"
+                    ? catalogue.filter((c) => c.category === "socks")
+                    : catalogue.filter((c) => c.category !== "socks");
+                if (list.length === 0) return null;
+                return (
+                  <div key={group}>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                      {group === "socks" ? "Socks" : "Shoes & other"}
+                    </p>
+                    <div className="mt-2 divide-y divide-line overflow-hidden rounded-xl border border-line">
+                      {list.map((c) => {
+                        const on = selected.has(c.name);
+                        return (
+                          <button
+                            key={c.name}
+                            onClick={() =>
+                              setSelected((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(c.name)) next.delete(c.name);
+                                else next.add(c.name);
+                                return next;
+                              })
+                            }
+                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-surface-2"
+                          >
+                            <span className="flex min-w-0 items-center gap-2">
+                              {c.category === "socks" && c.label && (
+                                <span className="shrink-0 rounded-md bg-foreground px-1.5 py-0.5 text-xs font-semibold text-background">
+                                  {c.label}
+                                </span>
+                              )}
+                              <span className="truncate">{c.name}</span>
+                            </span>
+                            <span
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+                                on
+                                  ? "border-accent bg-accent text-on-accent"
+                                  : "border-line text-transparent"
+                              }`}
+                              aria-hidden
+                            >
+                              ✓
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <input
             value={adHoc}
             onChange={(e) => setAdHoc(e.target.value)}
-            placeholder="Other items, comma-separated (e.g. bare feet, white socks)"
+            placeholder="Other items, comma-separated (e.g. old flip-flops)"
             className="mt-4 w-full rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
 
           {/* What he's wearing right now (optional) */}
           {catalogue.length > 0 && (
-            <div className="mt-3 rounded-xl border border-line p-4 dark:border-line">
+            <div className="mt-4 rounded-xl border border-line p-4 dark:border-line">
               <p className="text-sm font-medium">Wearing right now? (optional)</p>
               <p className="mt-0.5 text-xs text-muted">
-                So the Decider knows what&apos;s already on — it might tell you to
+                So the Decider knows what&apos;s already on — she might tell you to
                 keep them, change, or escalate.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {catalogue.map((c) => {
-                  const on = wearingSel.has(c.name);
-                  return (
-                    <button
-                      key={`wearing-${c.name}`}
-                      onClick={() =>
-                        setWearingSel((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(c.name)) next.delete(c.name);
-                          else next.add(c.name);
-                          return next;
-                        })
-                      }
-                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                        on
-                          ? "border-accent bg-accent text-on-accent"
-                          : "border-line"
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  );
-                })}
+                {[BARE, ...catalogue.map((c) => c.label && c.category === "socks" ? `${c.label} · ${c.name}` : c.name)].map(
+                  (display, idx) => {
+                    // The selection value is the plain name (or BARE); the label
+                    // is only for display.
+                    const value =
+                      idx === 0 ? BARE : catalogue[idx - 1].name;
+                    const on = wearingSel.has(value);
+                    return (
+                      <button
+                        key={value}
+                        onClick={() =>
+                          setWearingSel((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(value)) next.delete(value);
+                            else next.add(value);
+                            return next;
+                          })
+                        }
+                        className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                          on
+                            ? "border-accent bg-accent text-on-accent"
+                            : "border-line hover:border-accent"
+                        }`}
+                      >
+                        {display}
+                      </button>
+                    );
+                  }
+                )}
               </div>
-              <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                <input
-                  type="checkbox"
-                  checked={wearingSockless}
-                  onChange={(e) => setWearingSockless(e.target.checked)}
-                  className="h-4 w-4 accent-neutral-900 dark:accent-white"
-                />
-                No socks right now
-              </label>
             </div>
           )}
 
@@ -446,86 +463,6 @@ export default function RollPage() {
             className="mt-3 w-full rounded-lg border border-line px-3 py-2 text-sm leading-relaxed outline-none focus:border-accent dark:border-line dark:bg-neutral-950"
           />
 
-          {/* Smell index */}
-          <div className="mt-3 rounded-xl border border-line p-4 dark:border-line">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={smellOn}
-                onChange={(e) => setSmellOn(e.target.checked)}
-                className="mt-1 h-4 w-4 accent-neutral-900 dark:accent-white"
-              />
-              <span>
-                <span className="text-sm font-medium">
-                  Factor in smell
-                </span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  Tell the Decider how strong your footwear/socks smell right now.
-                </span>
-              </span>
-            </label>
-
-            {smellOn && (
-              <div className="mt-4 pl-7">
-                <div className="flex items-center justify-between text-xs text-muted">
-                  <span>Fresh</span>
-                  <span className="text-sm font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
-                    {smell}/10
-                  </span>
-                  <span>Foul</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={10}
-                  step={1}
-                  value={smell}
-                  onChange={(e) => setSmell(Number(e.target.value))}
-                  className="mt-2 w-full accent-neutral-900 dark:accent-white"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Mystery envelope */}
-          <div className="mt-3 rounded-xl border border-line p-4 dark:border-line">
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={seal}
-                onChange={(e) => setSeal(e.target.checked)}
-                className="mt-1 h-4 w-4 accent-neutral-900 dark:accent-white"
-              />
-              <span>
-                <span className="text-sm font-medium">
-                  Make it a timed mystery envelope
-                </span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  Seal the verdict away — you won&apos;t see it until the timer
-                  runs out.
-                </span>
-              </span>
-            </label>
-
-            {seal && (
-              <div className="mt-3 flex flex-wrap gap-2 pl-7">
-                {SEAL_OPTIONS.map((o) => (
-                  <button
-                    key={o.minutes}
-                    onClick={() => setSealMinutes(o.minutes)}
-                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                      sealMinutes === o.minutes
-                        ? "border-accent bg-accent text-on-accent"
-                        : "border-line"
-                    }`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
           <div className="mt-4 flex gap-2">
@@ -537,16 +474,10 @@ export default function RollPage() {
             </button>
             <button
               disabled={onHand.length === 0 || rolling}
-              onClick={() => doRoll({ sealMinutes: seal ? sealMinutes : 0 })}
+              onClick={() => doRoll({})}
               className="flex-1 rounded-lg bg-accent px-4 py-3 text-sm font-medium text-on-accent hover:opacity-90 disabled:opacity-40"
             >
-              {rolling
-                ? seal
-                  ? "Sealing…"
-                  : "Rolling…"
-                : seal
-                ? "Seal my envelope"
-                : "Roll my verdict"}
+              {rolling ? "Setting your day…" : "Set my day"}
             </button>
           </div>
         </div>

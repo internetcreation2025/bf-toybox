@@ -155,8 +155,9 @@ export function ActiveSession({ challenge }: { challenge: ActiveChallenge }) {
   const meta = RARITY_META[challenge.rarity];
   const sealed = challenge.status === "sealed";
   const proofRequired = Array.isArray(challenge.proof_required_json);
-  // A proof obligation can't be quietly cancelled — it stays until you submit.
-  const canCancel = sealed || !proofRequired;
+  // The day in play can always be cancelled — that's how you start a fresh plan
+  // (you can't overwrite a session, only cancel it and roll again).
+  const canCancel = true;
 
   // "Mark as done": for a wear task (or one that assigned socks), open a panel
   // to log sock wear right here — pick the socks, pre-ticked with whatever the
