@@ -209,7 +209,8 @@ export async function POST(request: Request) {
       )
     );
   const labelChecks = referencedLabels.map(
-    (l) => `Sock label "${l}" is visible and the right way up`
+    (l) =>
+      `Sock label "${l}" is visible and the right way up (each sock of the pair is tagged with this code plus a member letter, so "${l}A" or "${l}B" counts as showing "${l}")`
   );
   const requiredNames = [...baseRequired, ...labelChecks];
 

@@ -116,7 +116,17 @@ export async function POST(request: Request) {
   }
 
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const verified = read !== "" && norm(read) === norm(sock.label);
+  const target = norm(sock.label);
+  const got = norm(read);
+  // Each physical sock in a pair is labelled with the pair's code plus a member
+  // letter (pair "S3" → socks "S3A"/"S3B"), while the catalogue holds the pair
+  // code "S3". So accept an exact match OR the pair code with one trailing
+  // letter. Guard the strip so it never collapses a one-letter label to "".
+  const stripped = got.replace(/[a-z]$/, "");
+  const verified =
+    got !== "" &&
+    target !== "" &&
+    (got === target || (stripped !== "" && stripped === target));
 
   if (verified) {
     // Resilient — no-ops if verified_at isn't there yet.
