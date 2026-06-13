@@ -32,6 +32,10 @@ export default function WhatsOnPage() {
   const [difficult, setDifficult] = useState(false);
   const proofRef = useRef<HTMLInputElement>(null);
 
+  // Spontaneous "surprise task" the Decider invents.
+  const [task, setTask] = useState<string | null>(null);
+  const [taskBusy, setTaskBusy] = useState(false);
+
   const load = useCallback(async () => {
     const { data } = await supabase
       .from("bf_footwear")
@@ -99,10 +103,30 @@ export default function WhatsOnPage() {
     }
   }, [location]);
 
-  // A reveal nudge lands here with ?reveal=1 — open the proof flow straight away.
+  const surpriseMe = useCallback(async () => {
+    setTaskBusy(true);
+    setError("");
+    try {
+      const res = await fetch("/api/whats-on/surprise", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: location.trim(), nowLabel: nowLabel() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "She didn't answer — try again.");
+      setTask(json.task);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setTaskBusy(false);
+    }
+  }, [location]);
+
+  // Nudges land here: ?reveal=1 → show-me-your-feet; ?task=1 → surprise task.
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get("reveal") === "1") askToSeeFeet();
+    else if (p.get("task") === "1") surpriseMe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -224,16 +248,52 @@ export default function WhatsOnPage() {
         </div>
       )}
 
+      {/* Surprise task — she invents something */}
+      {task && (
+        <div className="mt-6 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            She&apos;s decided
+          </p>
+          <p className="mt-2 text-sm italic leading-relaxed text-neutral-700 dark:text-neutral-200">
+            {task}
+          </p>
+          <div className="mt-4 flex items-center gap-4 text-xs">
+            <button
+              onClick={() => setTask(null)}
+              className="rounded-lg bg-neutral-900 px-3 py-1.5 font-medium text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
+            >
+              Done
+            </button>
+            <button
+              onClick={surpriseMe}
+              disabled={taskBusy}
+              className="text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            >
+              {taskBusy ? "Thinking…" : "Give me another"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Show me your feet — proof flow */}
       <section className="mt-8 border-t border-neutral-200 pt-6 dark:border-neutral-800">
         {!revealReq ? (
-          <button
-            onClick={askToSeeFeet}
-            disabled={revealBusy}
-            className="text-sm font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
-          >
-            {revealBusy ? "She's deciding…" : "Dare me — have her ask to see my feet"}
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={askToSeeFeet}
+              disabled={revealBusy}
+              className="text-left text-sm font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            >
+              {revealBusy ? "She's deciding…" : "Dare me — have her ask to see my feet"}
+            </button>
+            <button
+              onClick={surpriseMe}
+              disabled={taskBusy}
+              className="text-left text-sm font-medium text-neutral-500 hover:text-neutral-900 disabled:opacity-50 dark:hover:text-neutral-100"
+            >
+              {taskBusy ? "Thinking…" : "Surprise me — let her set anything"}
+            </button>
+          </div>
         ) : (
           <div className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
             <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">

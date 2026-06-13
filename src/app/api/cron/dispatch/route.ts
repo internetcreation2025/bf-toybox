@@ -151,20 +151,27 @@ async function handle(request: Request) {
       if (Date.now() - last < NUDGE_MIN_GAP_MS) continue;
       if (Math.random() > NUDGE_PER_MIN_CHANCE) continue;
 
-      // Sometimes she just wonders what's on his feet; sometimes she wants to
-      // SEE them then and there (lands on the proof flow).
-      const reveal = Math.random() < 0.4;
-      const payload = reveal
-        ? {
-            title: "Sole Decider",
-            body: "Show me your feet — wherever you are.",
-            url: "/whats-on?reveal=1",
-          }
-        : {
-            title: "Sole Decider",
-            body: "What's on your feet right now?",
-            url: "/whats-on",
-          };
+      // Three flavours of nudge, chosen at random: a plain "what's on your
+      // feet?", a "show me" proof request, or a wildcard task she invents.
+      const roll = Math.random();
+      const payload =
+        roll < 0.34
+          ? {
+              title: "Sole Decider",
+              body: "What's on your feet right now?",
+              url: "/whats-on",
+            }
+          : roll < 0.67
+          ? {
+              title: "Sole Decider",
+              body: "Show me your feet — wherever you are.",
+              url: "/whats-on?reveal=1",
+            }
+          : {
+              title: "Sole Decider",
+              body: "I've got something for you…",
+              url: "/whats-on?task=1",
+            };
       const { data: subs } = await admin
         .from("bf_push_subs")
         .select("endpoint, p256dh, auth")
