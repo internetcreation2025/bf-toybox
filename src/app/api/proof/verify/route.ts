@@ -185,11 +185,33 @@ export async function POST(request: Request) {
     refImages.push({ angle: r.angle, media_type: t, data: buf.toString("base64") });
   }
 
-  const requiredNames: string[] = Array.isArray(challenge.proof_required_json)
+  const baseRequired: string[] = Array.isArray(challenge.proof_required_json)
     ? (challenge.proof_required_json as unknown[]).filter(
         (x): x is string => typeof x === "string"
       )
     : [];
+
+  // T16 — if the dare names a catalogued sock by its written label (e.g. "S1a",
+  // "D2b"), the proof must show that exact label, the right way up. The label
+  // sits upright when the sock is on the foot and he's standing.
+  const { data: labelledSocks } = await supabase
+    .from("bf_footwear")
+    .select("label")
+    .eq("category", "socks")
+    .not("label", "is", null);
+  const instruction = (challenge.instruction ?? "") as string;
+  const referencedLabels = (labelledSocks ?? [])
+    .map((s) => (s.label as string | null)?.trim())
+    .filter((l): l is string => !!l)
+    .filter((l) =>
+      new RegExp(`\\b${l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(
+        instruction
+      )
+    );
+  const labelChecks = referencedLabels.map(
+    (l) => `Sock label "${l}" is visible and the right way up`
+  );
+  const requiredNames = [...baseRequired, ...labelChecks];
 
   // Build the multimodal verification message.
   const content: Anthropic.ContentBlockParam[] = [];
@@ -231,7 +253,11 @@ Verify the PROOF photo against the owner's known feet and the dare's required el
 1. Decide if the bare feet in the PROOF photo are the SAME person's feet as the references/fingerprints. Use stable features (toe ordering, nail shape, moles/scars, proportions) — ignore lighting and angle. Be strict but fair.
 2. Give a match confidence from 0 to 100.
 3. For EACH required element below, decide if it is clearly present in the proof photo.
-
+${
+  labelChecks.length
+    ? `\nNOTE ON SOCK LABELS: each catalogued sock has a small hand-written code on it. When the sock is on the foot and the owner is standing, that code reads upright. For any "Sock label ... visible and the right way up" element, mark it present ONLY if you can actually read that exact code in the proof AND it is oriented upright (not upside-down or sideways). Read it the right way up.\n`
+    : ""
+}
 Required elements:
 ${requiredNames.length ? requiredNames.map((n, i) => `${i + 1}. ${n}`).join("\n") : "(none specified)"}
 
